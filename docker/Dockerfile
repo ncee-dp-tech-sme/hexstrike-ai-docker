@@ -50,6 +50,7 @@ RUN apt-get update && \
         python3 \
         python3-pip \
         python3-venv \
+        python3-dev \
         golang \
         nodejs \
         npm \
@@ -73,7 +74,49 @@ RUN python3 -m venv "$VIRTUAL_ENV" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # ==============================================================================
-# Phase 4: Rust Installation
+# Phase 4: Core Python Dependencies
+# ==============================================================================
+# Copy requirements.txt first for Docker layer caching optimization
+COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
+
+# Install core Python dependencies into virtual environment
+RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
+
+# ==============================================================================
+# Phase 5: Cloud & Container Security (Python CLIs)
+# ==============================================================================
+# Install cloud & container security CLIs used by MCP automations
+# - prowler: AWS/Azure/GCP security assessment
+# - scout-suite: Multi-cloud auditing
+# - checkov: IaC scanning for Terraform/CloudFormation/Kubernetes
+# - terrascan: Policy-as-code security scanning
+# - kube-hunter: Kubernetes penetration testing
+# - kube-bench: CIS Kubernetes benchmark checks
+RUN pip install --no-cache-dir \
+        prowler \
+        scout-suite \
+        checkov \
+        terrascan \
+        kube-hunter \
+        kube-bench
+
+# ==============================================================================
+# Phase 6: Binary & Memory Analysis Extras
+# ==============================================================================
+# Install additional binary analysis and memory forensics tooling
+# - ropgadget: ROP/JOP gadget finder
+# - volatility: Legacy Volatility 2 CLI (alias "vol")
+# - volatility3: Modern memory forensics framework
+RUN pip install --no-cache-dir \
+        ropgadget \
+        volatility \
+        volatility3
+
+# Install uro (URL declutterer for web security crawling/pentesting) via pip
+RUN pip install --no-cache-dir uro
+
+# ==============================================================================
+# Phase 7: Rust Installation
 # ==============================================================================
 # Install Rust using official installer for latest version
 # Required for: rustscan, feroxbuster, pwninit, x8
@@ -83,8 +126,21 @@ ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
+# Install rustscan via Cargo (not in apt repositories)
+RUN cargo install rustscan
+
+# Install pwninit (CTF binary setup automation) via Cargo
+RUN cargo install pwninit
+
+# Build x8 (hidden parameter discovery) from source using Cargo (Rust)
+RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
+    cd /tmp/x8 && \
+    cargo build --release && \
+    install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
+    rm -rf /tmp/x8
+
 # ==============================================================================
-# Phase 5: Network & Reconnaissance Tools
+# Phase 8: Network & Reconnaissance Tools
 # ==============================================================================
 # Install network scanning and reconnaissance tools as documented in README.md
 # Ensure core reconnaissance tools are present even on minimal Kali images
@@ -108,11 +164,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install rustscan via Cargo (not in apt repositories)
-RUN cargo install rustscan
-
 # ==============================================================================
-# Phase 6: Web Application Security Tools
+# Phase 9: Web Application Security Tools
 # ==============================================================================
 # Install web application testing tools as documented in README.md
 # Ensure required web tooling is installed explicitly for reproducibility
@@ -137,17 +190,6 @@ RUN apt-get update && \
         zaproxy && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Build x8 (hidden parameter discovery) from source using Cargo (Rust)
-RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
-    cd /tmp/x8 && \
-    cargo build --release && \
-    install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
-    rm -rf /tmp/x8
-
-# Install uro (URL declutterer for web security crawling/pentesting) via pip
-# Now pip works because venv was created in Phase 3
-RUN pip install --no-cache-dir uro
 
 # Install Go-based web tools referenced in README.md and MCP server
 # - katana: Next-generation crawling and spidering
@@ -180,7 +222,7 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/quay/clair/v4/cmd/clairctl@latest
 
 # ==============================================================================
-# Phase 7: Authentication & Password Security Tools
+# Phase 10: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
 RUN apt-get update && \
@@ -198,7 +240,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 8: Binary & Forensics Tools
+# Phase 11: Binary & Forensics Tools
 # ==============================================================================
 # Install binary analysis and forensics tooling referenced in README.md/MCP
 RUN apt-get update && \
@@ -230,11 +272,8 @@ RUN gem install zsteg
 # Install one_gadget (ROP gadget finder for GLIBC)
 RUN gem install one_gadget
 
-# Install pwninit (CTF binary setup automation) via Cargo
-RUN cargo install pwninit
-
 # ==============================================================================
-# Phase 9: OSINT & Intelligence Tools
+# Phase 12: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tooling referenced in README.md and MCP routes
 RUN apt-get update && \
@@ -255,7 +294,7 @@ RUN npm install -g \
         pwned
 
 # ==============================================================================
-# Phase 10: Wireless & Packet Analysis Tools
+# Phase 13: Wireless & Packet Analysis Tools
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
 RUN apt-get update && \
@@ -268,7 +307,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 11: Exploitation Frameworks
+# Phase 14: Exploitation Frameworks
 # ==============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -277,7 +316,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 12: Runtime Security Agents
+# Phase 15: Runtime Security Agents
 # ==============================================================================
 RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
     apt-get update && \
@@ -291,7 +330,7 @@ RUN npm install -g \
         insomnia-inso
 
 # ==============================================================================
-# Phase 13: Browser Agent Requirements
+# Phase 16: Browser Agent Requirements
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
@@ -301,45 +340,6 @@ RUN apt-get update && \
         chromium-driver && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# ==============================================================================
-# Phase 14: Core Python Dependencies
-# ==============================================================================
-# Copy requirements.txt first for Docker layer caching optimization
-COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
-
-# Install core Python dependencies into virtual environment
-RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
-
-# ==============================================================================
-# Phase 15: Cloud & Container Security (Python CLIs)
-# ==============================================================================
-# Install cloud & container security CLIs used by MCP automations
-# - prowler: AWS/Azure/GCP security assessment
-# - scout-suite: Multi-cloud auditing
-# - checkov: IaC scanning for Terraform/CloudFormation/Kubernetes
-# - terrascan: Policy-as-code security scanning
-# - kube-hunter: Kubernetes penetration testing
-# - kube-bench: CIS Kubernetes benchmark checks
-RUN pip install --no-cache-dir \
-        prowler \
-        scout-suite \
-        checkov \
-        terrascan \
-        kube-hunter \
-        kube-bench
-
-# ==============================================================================
-# Phase 16: Binary & Memory Analysis Extras
-# ==============================================================================
-# Install additional binary analysis and memory forensics tooling
-# - ropgadget: ROP/JOP gadget finder
-# - volatility: Legacy Volatility 2 CLI (alias "vol")
-# - volatility3: Modern memory forensics framework
-RUN pip install --no-cache-dir \
-        ropgadget \
-        volatility \
-        volatility3
 
 # ==============================================================================
 # Phase 17: Security Tool Repositories & Wrappers
