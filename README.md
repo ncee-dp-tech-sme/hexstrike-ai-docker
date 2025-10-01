@@ -18,7 +18,7 @@
 
 [📋 What's New](#whats-new-in-v60) • [🏗️ Architecture](#architecture-overview) • [🚀 Installation](#installation) • [🛠️ Features](#features) • [🤖 AI Agents](#ai-agents) • [📡 API Reference](#api-reference)
 
-• [🐳 Docker Build Instructions](./docker/BUILD.md)
+• [🐳 Docker Build Instructions](./docker/DOCKER-README.md)
 
 </div>
 
@@ -172,7 +172,7 @@ curl http://localhost:8888/health
 - ✅ Includes core recon/web/OSINT tooling (nmap, masscan, gobuster, nikto, recon-ng, sherlock)
 - ✅ Cloud/container scanners (trivy, docker-bench-security) ready to run
 
-**For detailed Docker documentation, see [Docker Build Guide](./docker/BUILD.md)**
+**For detailed Docker documentation, see [Docker Build Guide](./docker/DOCKER-README.md)**
 
 ---
 
