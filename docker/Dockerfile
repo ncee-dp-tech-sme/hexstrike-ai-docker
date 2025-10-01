@@ -177,9 +177,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 7: Binary Analysis & Reverse Engineering Tools
+# Phase 7: Binary & Forensics Tools
 # ==============================================================================
-# Install binary analysis tools as documented in README.md
+# Install binary analysis and forensics tooling referenced in README.md/MCP
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gdb \
@@ -190,22 +190,7 @@ RUN apt-get update && \
         foremost \
         steghide \
         exiftool \
-        ropper && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install zsteg (PNG/BMP steganography detection) via Ruby gem
-RUN gem install zsteg
-
-# Install one_gadget (ROP gadget finder for GLIBC)
-RUN gem install one_gadget
-
-# ==============================================================================
-# Phase 8: CTF & Forensics Tools
-# ==============================================================================
-# Install CTF and forensics tools as documented in README.md
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+        ropper \
         autopsy \
         sleuthkit \
         outguess \
@@ -218,11 +203,17 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install zsteg (PNG/BMP steganography detection) via Ruby gem
+RUN gem install zsteg
+
+# Install one_gadget (ROP gadget finder for GLIBC)
+RUN gem install one_gadget
+
 # Install pwninit (CTF binary setup automation) via Cargo
 RUN cargo install pwninit
 
 # ==============================================================================
-# Phase 9: OSINT & Intelligence Tools
+# Phase 8: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tooling referenced in README.md and MCP routes
 RUN apt-get update && \
@@ -235,8 +226,15 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install OSINT companion CLIs distributed via npm
+RUN npm install -g \
+        social-analyzer \
+        shodan-cli \
+        censys-cli \
+        pwned
+
 # ==============================================================================
-# Phase 10: Wireless & Packet Analysis Tools
+# Phase 9: Wireless & Packet Analysis Tools
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
 RUN apt-get update && \
@@ -249,7 +247,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 11: Exploitation Frameworks
+# Phase 10: Exploitation Frameworks
 # ==============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -258,7 +256,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 12: Runtime Security Agents
+# Phase 11: Runtime Security Agents
 # ==============================================================================
 RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
     apt-get update && \
@@ -266,17 +264,13 @@ RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bas
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install OSINT tools via npm
-# - social-analyzer: Social media analysis and OSINT gathering
-# - shodan-cli: Official Shodan CLI (maintained by trusted Shodan team)
-# - censys-cli: Official Censys CLI (maintained by Censys security engineers)
-# - pwned: Have I Been Pwned API client
-# - newman: Postman CLI runner (official Postman team)
-# - insomnia-inso: Insomnia CLI tool (Maintained by Kong/Insomnia)
-RUN npm install -g social-analyzer shodan-cli censys-cli pwned newman insomnia-inso
+# Additional CLI utilities required by MCP endpoints
+RUN npm install -g \
+        newman \
+        insomnia-inso
 
 # ==============================================================================
-# Phase 13: Browser Agent Requirements
+# Phase 12: Browser Agent Requirements
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
@@ -288,13 +282,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 14: Python Virtual Environment & Dependencies
+# Phase 13: Python Virtual Environment & Dependencies
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
-# Create virtual environment and install Python dependencies
-# Following README.md installation instructions exactly
+# Create virtual environment and install core Python dependencies
 ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
@@ -302,29 +295,38 @@ RUN python3 -m venv "$VIRTUAL_ENV" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
-# Install additional Python security tools
-# - ropgadget: ROP/JOP gadget finder
-# - volatility3: Memory forensics framework
-# - pwntools: CTF framework and exploit development (already in requirements.txt)
+# ==============================================================================
+# Phase 14: Cloud & Container Security (Python CLIs)
+# ==============================================================================
+# Install cloud & container security CLIs used by MCP automations
 # - prowler: AWS/Azure/GCP security assessment
-# - scout-suite: Multi-cloud security auditing
-# - checkov: Infrastructure as code security scanning
-# - terrascan: Infrastructure security scanner
+# - scout-suite: Multi-cloud auditing
+# - checkov: IaC scanning for Terraform/CloudFormation/Kubernetes
+# - terrascan: Policy-as-code security scanning
 # - kube-hunter: Kubernetes penetration testing
-# - kube-bench: CIS Kubernetes benchmark checker
+# - kube-bench: CIS Kubernetes benchmark checks
 RUN pip install --no-cache-dir \
-    ropgadget \
-    volatility \
-    volatility3 \
-    prowler \
-    scout-suite \
-    checkov \
-    terrascan \
-    kube-hunter \
-    kube-bench
+        prowler \
+        scout-suite \
+        checkov \
+        terrascan \
+        kube-hunter \
+        kube-bench
 
 # ==============================================================================
-# Phase 15: Security Tool Repositories & Wrappers
+# Phase 15: Binary & Memory Analysis Extras
+# ==============================================================================
+# Install additional binary analysis and memory forensics tooling
+# - ropgadget: ROP/JOP gadget finder
+# - volatility: Legacy Volatility 2 CLI (alias "vol")
+# - volatility3: Modern memory forensics framework
+RUN pip install --no-cache-dir \
+        ropgadget \
+        volatility \
+        volatility3
+
+# ==============================================================================
+# Phase 16: Security Tool Repositories & Wrappers
 # ==============================================================================
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper && \
@@ -361,7 +363,7 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
-# Phase 16: Cloud & Container Security Binaries
+# Phase 17: Cloud & Container Security Binaries
 # ==============================================================================
 # Install Trivy (container vulnerability scanner) as referenced in README.md
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
@@ -375,7 +377,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     chmod +x /usr/local/bin/docker-bench-security
 
 # ==============================================================================
-# Phase 17: Runtime Configuration
+# Phase 18: Runtime Configuration
 # ==============================================================================
 # Expose MCP server port as documented in README.md
 EXPOSE 8888
@@ -385,7 +387,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
 # ==============================================================================
-# Phase 18: Startup
+# Phase 19: Startup
 # ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
 CMD ["python3", "hexstrike_server.py"]
