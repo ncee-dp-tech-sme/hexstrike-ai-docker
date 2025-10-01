@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
 
 # ==============================================================================
-# PHASE 1: System Update & Base Dependencies
+# Phase 1: Base System Packages
 # ==============================================================================
 # Update package lists and install core system utilities
 # Install core utilities required for tool installation
@@ -36,7 +36,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 2: Language Runtimes & Compilers
+# Phase 2: Language Runtimes & Compilers
 # ==============================================================================
 # Install language runtimes required by various security tools
 # - Python: Primary language for HexStrike and many security tools
@@ -62,7 +62,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 3: Rust Installation
+# Phase 3: Rust Installation
 # ==============================================================================
 # Install Rust using official installer for latest version
 # Required for: rustscan, feroxbuster, pwninit
@@ -73,7 +73,7 @@ ENV PATH="$CARGO_HOME/bin:$PATH"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
-# PHASE 4: Network & Reconnaissance Tools
+# Phase 4: Network & Reconnaissance Tools
 # ==============================================================================
 # Install network scanning and reconnaissance tools as documented in README.md
 # Ensure core reconnaissance tools are present even on minimal Kali images
@@ -101,7 +101,7 @@ RUN apt-get update && \
 RUN cargo install rustscan
 
 # ==============================================================================
-# PHASE 5: Web Application Security Tools
+# Phase 5: Web Application Security Tools
 # ==============================================================================
 # Install web application testing tools as documented in README.md
 # Ensure required web tooling is installed explicitly for reproducibility
@@ -127,10 +127,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install nuclei (latest version via Go)
-RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
-
-# Install additional Go-based web tools referenced in README.md
+# Install Go-based web tools referenced in README.md and MCP server
 # - x8: Hidden parameter discovery
 # - katana: Next-generation crawling and spidering
 # - httpx: Fast HTTP probing and technology detection
@@ -140,6 +137,7 @@ RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 # - waybackurls: Historical URL discovery from Wayback Machine
 # - anew: Append new lines to files (data processing)
 # - qsreplace: Query string parameter replacement
+# - nuclei: Web vulnerability scanning templates
 # SECURITY VERIFIED: All GitHub repositories below are from trusted security researchers
 # - Sh1Yo/x8: 1.8k+ stars, signed releases, GPL-3.0 license
 # - projectdiscovery/*: Widely adopted tooling from ProjectDiscovery
@@ -150,6 +148,7 @@ RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 RUN go install -v github.com/Sh1Yo/x8/cmd/x8@latest && \
     go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
+    go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
     go install -v github.com/hahwul/dalfox/v2@latest && \
     go install -v github.com/jaeles-project/jaeles@latest && \
     go install -v github.com/lc/gau/v2/cmd/gau@latest && \
@@ -160,7 +159,7 @@ RUN go install -v github.com/Sh1Yo/x8/cmd/x8@latest && \
     go install -v github.com/quay/clair/v4/cmd/clairctl@latest
 
 # ==============================================================================
-# PHASE 6: Authentication & Password Security Tools
+# Phase 6: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
 RUN apt-get update && \
@@ -178,7 +177,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 7: Binary Analysis & Reverse Engineering Tools
+# Phase 7: Binary Analysis & Reverse Engineering Tools
 # ==============================================================================
 # Install binary analysis tools as documented in README.md
 RUN apt-get update && \
@@ -202,7 +201,7 @@ RUN gem install zsteg
 RUN gem install one_gadget
 
 # ==============================================================================
-# PHASE 8: CTF & Forensics Tools
+# Phase 8: CTF & Forensics Tools
 # ==============================================================================
 # Install CTF and forensics tools as documented in README.md
 RUN apt-get update && \
@@ -223,7 +222,7 @@ RUN apt-get update && \
 RUN cargo install pwninit
 
 # ==============================================================================
-# PHASE 8B: Wireless & Packet Analysis Tools
+# Phase 9: Wireless & Packet Analysis Tools
 # ==============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -235,7 +234,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 9: OSINT & Intelligence Tools
+# Phase 10: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tools as documented in README.md
 RUN apt-get update && \
@@ -249,7 +248,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 9B: Exploitation Frameworks
+# Phase 11: Exploitation Frameworks
 # ==============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -258,7 +257,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 9C: Runtime Security Agents
+# Phase 12: Runtime Security Agents
 # ==============================================================================
 RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
     apt-get update && \
@@ -276,7 +275,7 @@ RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bas
 RUN npm install -g social-analyzer shodan-cli censys-cli pwned newman insomnia-inso
 
 # ==============================================================================
-# PHASE 10: Browser Agent Requirements
+# Phase 13: Browser Agent Requirements
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
@@ -288,7 +287,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# PHASE 11: Python Virtual Environment & Dependencies
+# Phase 14: Python Virtual Environment & Dependencies
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt /opt/hexstrike/requirements.txt
@@ -324,7 +323,7 @@ RUN pip install --no-cache-dir \
     kube-bench
 
 # ==============================================================================
-# PHASE 11C: Security Tool Repositories & Wrappers
+# Phase 15: Security Tool Repositories & Wrappers
 # ==============================================================================
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper && \
@@ -348,10 +347,20 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.
 RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
     chmod +x /usr/local/bin/cloudmapper && \
     printf '#!/bin/bash\npython3 /opt/hexstrike/tools/pacu/pacu.py "$@"\n' > /usr/local/bin/pacu && \
-    chmod +x /usr/local/bin/pacu
+    chmod +x /usr/local/bin/pacu && \
+    mkdir -p /opt/burpsuite && \
+    if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
+    printf '#!/bin/bash\nnewman "$@"\n' > /usr/local/bin/postman && \
+    chmod +x /usr/local/bin/postman && \
+    printf '#!/bin/bash\ninso "$@"\n' > /usr/local/bin/insomnia && \
+    chmod +x /usr/local/bin/insomnia && \
+    printf '#!/bin/bash\nvolatility "$@"\n' > /usr/local/bin/vol && \
+    chmod +x /usr/local/bin/vol && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
+    chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
-# PHASE 11B: Cloud & Container Security Binaries
+# Phase 16: Cloud & Container Security Binaries
 # ==============================================================================
 # Install Trivy (container vulnerability scanner) as referenced in README.md
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
@@ -365,7 +374,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     chmod +x /usr/local/bin/docker-bench-security
 
 # ==============================================================================
-# PHASE 12: Application Files
+# Phase 17: Application Files
 # ==============================================================================
 # Copy application source code
 COPY hexstrike_server.py /opt/hexstrike/
@@ -375,7 +384,7 @@ COPY hexstrike_mcp.py /opt/hexstrike/
 ENV PATH="$PATH:/root/go/bin"
 
 # ==============================================================================
-# PHASE 13: Runtime Configuration
+# Phase 18: Runtime Configuration
 # ==============================================================================
 # Expose MCP server port as documented in README.md
 EXPOSE 8888
@@ -385,7 +394,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
 # ==============================================================================
-# PHASE 14: Startup
+# Phase 19: Startup
 # ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
 CMD ["python3", "hexstrike_server.py"]
