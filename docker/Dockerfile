@@ -222,21 +222,9 @@ RUN apt-get update && \
 RUN cargo install pwninit
 
 # ==============================================================================
-# Phase 9: Wireless & Packet Analysis Tools
+# Phase 9: OSINT & Intelligence Tools
 # ==============================================================================
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        wireshark \
-        tshark \
-        tcpdump \
-        aircrack-ng && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# ==============================================================================
-# Phase 10: OSINT & Intelligence Tools
-# ==============================================================================
-# Install OSINT tools as documented in README.md
+# Install OSINT tooling referenced in README.md and MCP routes
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         exploitdb \
@@ -244,6 +232,19 @@ RUN apt-get update && \
         sherlock \
         recon-ng \
         spiderfoot && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# ==============================================================================
+# Phase 10: Wireless & Packet Analysis Tools
+# ==============================================================================
+# Install packet capture / 802.11 tooling used by network automation endpoints
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wireshark \
+        tshark \
+        tcpdump \
+        aircrack-ng && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
