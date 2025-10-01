@@ -202,12 +202,11 @@ RUN apt-get update && \
 # - qsreplace: Query string parameter replacement
 # - nuclei: Web vulnerability scanning templates
 # - clairctl: Container vulnerability analysis CLI
-# SECURITY VERIFIED: All GitHub repositories below are from trusted security researchers
-# - Sh1Yo/x8: 1.8k+ stars, signed releases, GPL-3.0 license
+# - Sh1Yo/x8: Hidden parameters discovery suite
 # - projectdiscovery/*: Widely adopted tooling from ProjectDiscovery
-# - hahwul/dalfox: 3k+ stars, maintained by security researcher Hahwul
-# - jaeles-project/jaeles: 2k+ stars, community-audited vulnerability scanner
-# - lc/gau: 3k+ stars, well-known URL enumerator
+# - hahwul/dalfox: Powerful open-source XSS scanner and utility focused on automation
+# - jaeles-project/jaeles: community-audited vulnerability scanner
+# - lc/gau: well-known URL enumerator
 # - tomnomnom/*: Tools from Tom Hudson (ex-Google security)
 # - quay/clair: Container vulnerability static analysis
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
@@ -244,7 +243,7 @@ RUN apt-get update && \
 # ==============================================================================
 # Phase 10: Binary & Forensics Tools
 # ==============================================================================
-# Install binary analysis and forensics tooling referenced in README.md/MCP
+# Install binary analysis and forensics tooling referenced in README.md
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         gdb \
@@ -402,7 +401,7 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
 # ==============================================================================
 # Phase 17: Cloud & Container Security Binaries
 # ==============================================================================
-# Install Trivy (container vulnerability scanner) as referenced in README.md
+# Install Trivy (container vulnerability scanner)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
     sh -s -- -b /usr/local/bin
 
@@ -416,10 +415,10 @@ RUN mkdir -p /opt/hexstrike/tools && \
 # ==============================================================================
 # Phase 18: Runtime Configuration
 # ==============================================================================
-# Expose MCP server port as documented in README.md
+# Expose MCP server port
 EXPOSE 8888
 
-# Health check endpoint (matches README.md verification section)
+# Health check endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
