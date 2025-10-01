@@ -144,6 +144,12 @@ cd hexstrike-ai
 # 3. Run MCP server
 ./scripts/run-docker-mcp-server.sh
 
+# Use Podman (optional)
+CONTAINER_RUNTIME=podman ./scripts/run-docker-mcp-server.sh
+
+# Both scripts require Docker/Podman with permissions to add NET_RAW/NET_ADMIN capabilities.
+# Run via sudo or ensure your user has the appropriate privileges.
+
 # Alternative: run in detached mode
 ./scripts/run-docker-mcp-server-detached.sh
 
@@ -163,6 +169,8 @@ curl http://localhost:8888/health
 - ✅ No dependency conflicts
 - ✅ Easy cleanup and updates
 - ✅ Isolated from host system
+- ✅ Includes core recon/web/OSINT tooling (nmap, masscan, gobuster, nikto, recon-ng, sherlock)
+- ✅ Cloud/container scanners (trivy, docker-bench-security) ready to run
 
 **For detailed Docker documentation, see [Docker Build Guide](./docker/BUILD.md)**
 

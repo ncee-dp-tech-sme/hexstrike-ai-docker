@@ -17,10 +17,9 @@ WORKDIR /opt/hexstrike
 # ==============================================================================
 # PHASE 1: System Update & Base Dependencies
 # ==============================================================================
-# Update package lists and upgrade system
+# Update package lists and install core system utilities
 # Install core utilities required for tool installation
 RUN apt-get update && \
-    apt-get -y upgrade && \
     apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
@@ -30,7 +29,9 @@ RUN apt-get update && \
         lsb-release \
         software-properties-common \
         build-essential \
-        ca-certificates && \
+        ca-certificates \
+        wordlists \
+        httpie && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,7 +44,7 @@ RUN apt-get update && \
 # - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli
 # - Java: Required for some binary analysis tools
 # - Ruby: Required for wpscan and other tools
-# - GCC/Make: Required for compiling tools from source
+# - Build tools: Provided via build-essential (gcc, g++, make)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -54,9 +55,6 @@ RUN apt-get update && \
         npm \
         default-jdk \
         ruby-full \
-        gcc \
-        g++ \
-        make \
         autoconf \
         automake \
         pkg-config && \
@@ -72,20 +70,23 @@ ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
 ENV PATH="$CARGO_HOME/bin:$PATH"
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-    . "$CARGO_HOME/env"
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
 # PHASE 4: Network & Reconnaissance Tools
 # ==============================================================================
 # Install network scanning and reconnaissance tools as documented in README.md
-# Note: nmap, masscan, amass, theharvester are already in Kali default
+# Ensure core reconnaissance tools are present even on minimal Kali images
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        nmap \
+        masscan \
         autorecon \
+        amass \
         subfinder \
         fierce \
         dnsenum \
+        theharvester \
         responder \
         netexec \
         enum4linux-ng \
@@ -100,16 +101,21 @@ RUN cargo install rustscan
 # PHASE 5: Web Application Security Tools
 # ==============================================================================
 # Install web application testing tools as documented in README.md
-# Note: gobuster, nikto, sqlmap, dirb, wafw00f are already in Kali default
+# Ensure required web tooling is installed explicitly for reproducibility
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        gobuster \
         feroxbuster \
         ffuf \
+        dirb \
         dirsearch \
+        nikto \
+        sqlmap \
         wpscan \
         arjun \
         paramspider \
-        hakrawler && \
+        hakrawler \
+        wafw00f && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -140,9 +146,11 @@ RUN go install -v github.com/ffffffff0x/x8@latest && \
 # PHASE 6: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
-# Note: hydra, john, hashcat are already in Kali default
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        hydra \
+        john \
+        hashcat \
         medusa \
         patator \
         evil-winrm \
@@ -155,9 +163,13 @@ RUN apt-get update && \
 # PHASE 7: Binary Analysis & Reverse Engineering Tools
 # ==============================================================================
 # Install binary analysis tools as documented in README.md
-# Note: gdb, radare2, ghidra, binwalk, checksec are already in Kali default
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        gdb \
+        radare2 \
+        ghidra \
+        binwalk \
+        checksec \
         foremost \
         steghide \
         exiftool \
@@ -190,11 +202,13 @@ RUN cargo install pwninit
 # PHASE 9: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tools as documented in README.md
-# Note: sherlock, recon-ng, maltego, spiderfoot are already in Kali default
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         exploitdb \
-        kismet && \
+        kismet \
+        sherlock \
+        recon-ng \
+        spiderfoot && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -253,6 +267,20 @@ RUN pip install --no-cache-dir \
     kube-bench
 
 # ==============================================================================
+# PHASE 11B: Cloud & Container Security Binaries
+# ==============================================================================
+# Install Trivy (container vulnerability scanner) as referenced in README.md
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
+    sh -s -- -b /usr/local/bin
+
+# Install docker-bench-security (Docker daemon configuration audit)
+RUN mkdir -p /opt/hexstrike/tools && \
+    git clone --depth 1 https://github.com/docker/docker-bench-security.git /opt/hexstrike/tools/docker-bench-security && \
+    rm -rf /opt/hexstrike/tools/docker-bench-security/.git && \
+    printf '#!/bin/bash\nset -e\ncd /opt/hexstrike/tools/docker-bench-security\nexec ./docker-bench-security.sh "$@"\n' > /usr/local/bin/docker-bench-security && \
+    chmod +x /usr/local/bin/docker-bench-security
+
+# ==============================================================================
 # PHASE 12: Application Files
 # ==============================================================================
 # Copy application source code
@@ -276,5 +304,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 # PHASE 14: Startup
 # ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
-# Follows README.md: python3 hexstrike_server.py
 CMD ["python3", "hexstrike_server.py"]

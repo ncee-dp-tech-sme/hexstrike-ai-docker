@@ -83,6 +83,21 @@ docker-compose -f docker/docker-compose.yml down -v
 
 ---
 
+## Included Tooling Snapshot
+
+The container image pre-installs the tooling referenced in the README so you can start scanning immediately:
+
+- **Network Recon:** `nmap`, `masscan`, `autorecon`, `amass`, `subfinder`, `theharvester`, `responder`, `netexec`, `enum4linux-ng`, `arp-scan`, `rustscan`
+- **Web Security:** `gobuster`, `feroxbuster`, `ffuf`, `dirb`, `dirsearch`, `nikto`, `sqlmap`, `wpscan`, `arjun`, `paramspider`, `hakrawler`, `wafw00f`, plus Go binaries such as `nuclei`, `httpx`, `katana`, `dalfox`
+- **Binary & CTF:** `gdb`, `radare2`, `ghidra`, `binwalk`, `checksec`, `foremost`, `steghide`, `exiftool`, `zsteg`, `pwninit`
+- **OSINT & Intelligence:** `exploitdb`, `kismet`, `sherlock`, `recon-ng`, `spiderfoot`, `social-analyzer`, `shodan-cli`, `censys-cli`, `pwned`
+- **Cloud & Container:** `prowler`, `scout-suite`, `checkov`, `terrascan`, `kube-hunter`, `kube-bench`, `trivy`, `docker-bench-security`
+- **Utilities:** Kali wordlists, `httpie`, Chrome/Chromium + driver, Python virtual environment with HexStrike requirements
+
+Everything runs as `root` inside the container so tools that require raw sockets or privileged ports behave as expected.
+
+---
+
 ## Manual Docker Build
 
 For custom builds or when not using Docker Compose.
@@ -173,6 +188,7 @@ HexStrike requires specific Linux capabilities for security tool operations:
 | `NET_ADMIN` | Network configuration | Various network tools |
 
 **Note**: Running with `--privileged` is NOT recommended for security reasons.
+Run the container as `root` (default) or ensure your runtime allows adding these capabilities, otherwise tools such as nmap and masscan will fail to open raw sockets.
 
 ### Port Configuration
 
