@@ -71,6 +71,7 @@ ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN python3 -m venv "$VIRTUAL_ENV" && \
+    . "$VIRTUAL_ENV/bin/activate" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # ==============================================================================
