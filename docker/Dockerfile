@@ -127,8 +127,13 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Build x8 (hidden parameter discovery) from source because upstream module lacks Go modules metadata
+RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
+    cd /tmp/x8 && \
+    GO111MODULE=off go build -o /usr/local/bin/x8 && \
+    rm -rf /tmp/x8
+
 # Install Go-based web tools referenced in README.md and MCP server
-# - x8: Hidden parameter discovery
 # - katana: Next-generation crawling and spidering
 # - httpx: Fast HTTP probing and technology detection
 # - dalfox: Advanced XSS vulnerability scanning
@@ -145,8 +150,7 @@ RUN apt-get update && \
 # - jaeles-project/jaeles: 2k+ stars, community-audited vulnerability scanner
 # - lc/gau: 3k+ stars, well-known URL enumerator
 # - tomnomnom/*: Tools from Tom Hudson (ex-Google security)
-RUN go install -v github.com/Sh1Yo/x8/cmd/x8@latest && \
-    go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
+RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
     go install -v github.com/hahwul/dalfox/v2@latest && \
@@ -346,19 +350,16 @@ RUN mkdir -p /opt/hexstrike/tools && \
 RUN pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.txt && \
     pip install --no-cache-dir -r /opt/hexstrike/tools/pacu/requirements.txt
 
-# Create convenience wrappers
+# Create convenience entrypoints expected by MCP routes/health checks
 RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
     chmod +x /usr/local/bin/cloudmapper && \
     printf '#!/bin/bash\npython3 /opt/hexstrike/tools/pacu/pacu.py "$@"\n' > /usr/local/bin/pacu && \
     chmod +x /usr/local/bin/pacu && \
     mkdir -p /opt/burpsuite && \
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
-    printf '#!/bin/bash\nnewman "$@"\n' > /usr/local/bin/postman && \
-    chmod +x /usr/local/bin/postman && \
-    printf '#!/bin/bash\ninso "$@"\n' > /usr/local/bin/insomnia && \
-    chmod +x /usr/local/bin/insomnia && \
-    printf '#!/bin/bash\nvolatility "$@"\n' > /usr/local/bin/vol && \
-    chmod +x /usr/local/bin/vol && \
+    ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
+    ln -sf /usr/local/bin/inso /usr/local/bin/insomnia && \
+    ln -sf /usr/local/bin/volatility /usr/local/bin/vol && \
     printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
