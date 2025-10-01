@@ -127,11 +127,15 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Build x8 (hidden parameter discovery) from source because upstream module lacks Go modules metadata
+# Build x8 (hidden parameter discovery) using Rust release build
 RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
     cd /tmp/x8 && \
-    GO111MODULE=off go build -o /usr/local/bin/x8 && \
+    cargo build --release && \
+    install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
     rm -rf /tmp/x8
+
+# Install uro (URL declutterer) via pip (MCP uses `uro` CLI)
+RUN pip install --no-cache-dir uro
 
 # Install Go-based web tools referenced in README.md and MCP server
 # - katana: Next-generation crawling and spidering
@@ -159,7 +163,6 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/tomnomnom/waybackurls@latest && \
     go install -v github.com/tomnomnom/anew@latest && \
     go install -v github.com/tomnomnom/qsreplace@latest && \
-    go install -v github.com/s0md3v/uro/cmd/uro@latest && \
     go install -v github.com/quay/clair/v4/cmd/clairctl@latest
 
 # ==============================================================================
