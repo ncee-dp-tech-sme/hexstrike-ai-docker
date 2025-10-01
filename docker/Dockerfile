@@ -29,11 +29,22 @@ RUN apt-get update && \
         lsb-release \
         software-properties-common \
         build-essential \
+        xz-utils \
+        uuid-dev \
+        libssl-dev \
+        zlib1g-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        libffi-dev \
+        liblzma-dev \
+        libgdbm-dev \
+        libnss3-dev \
+        tk-dev \
         ca-certificates \
         wordlists \
-        httpie && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        httpie
+
 
 # ==============================================================================
 # Phase 2: Language Runtimes & Compilers
@@ -44,9 +55,38 @@ RUN apt-get update && \
 # - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli, and pwned
 # - Java: Required for some binary analysis tools
 # - Ruby: Required for wpscan and other tools
+# - Rust: Required for: rustscan, feroxbuster, pwninit, x8
 # - Build tools: Provided via build-essential (gcc, g++, make)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+
+# Install Rust and Cargo using official installer for latest version
+ENV CARGO_HOME=/root/.cargo
+ENV RUSTUP_HOME=/root/.rustup
+ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+
+# Install Python 3.12 (latest stable needed for prowler compatibility)
+RUN set -euo pipefail; \
+    version="$(curl -fsSL https://www.python.org/ftp/python/ | grep -oE '3\\.12\\.[0-9]+' | sort -V | tail -1)"; \
+    curl -fsSL "https://www.python.org/ftp/python/${version}/Python-${version}.tgz" -o /tmp/Python.tgz && \
+    tar -xzf /tmp/Python.tgz -C /tmp && \
+    cd /tmp/Python-${version} && \
+    ./configure --enable-optimizations --with-ensurepip=install && \
+    make -j"$(nproc)" && \
+    make altinstall && \
+    cd / && \
+    rm -rf /tmp/Python.tgz /tmp/Python-${version}
+
+# Install language runtimes required by various security tools
+# - Python: Primary language for HexStrike and many security tools
+# - Rust: Needed for cargo-based tooling (rustscan, pwninit, x8)
+# - Go: Required for nuclei, httpx, katana, etc.
+# - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli, pwned
+# - Java: Needed by ghidra and other JVM-based tools
+# - Ruby: Required for wpscan and other Ruby utilities
+# - Build toolchain: gcc, make, headers
+RUN apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
         python3-venv \
@@ -58,9 +98,14 @@ RUN apt-get update && \
         ruby-full \
         autoconf \
         automake \
-        pkg-config && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        pkg-config
+
+# Install Rust toolchain (cargo) for security utilities
+ENV CARGO_HOME=/root/.cargo
+ENV RUSTUP_HOME=/root/.rustup
+ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment Setup
@@ -70,7 +115,7 @@ RUN apt-get update && \
 ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN python3 -m venv "$VIRTUAL_ENV" && \
+RUN python3.12 -m venv "$VIRTUAL_ENV" && \
     . "$VIRTUAL_ENV/bin/activate" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel
 
@@ -83,63 +128,34 @@ COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
+
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
-# Install cloud & container security CLIs used by MCP automations
-# - prowler: AWS/Azure/GCP security assessment
-# - scout-suite: Multi-cloud auditing
-# - checkov: IaC scanning for Terraform/CloudFormation/Kubernetes
-# - terrascan: Policy-as-code security scanning
-# - kube-hunter: Kubernetes penetration testing
-# - kube-bench: CIS Kubernetes benchmark checks
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# Install cloud & container security CLIs (order matches pip install below)
+# - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
+# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
+# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
+# - Terrascan: Policy-as-code scanner for IaC
+# - kube-hunter: Kubernetes penetration testing (active/passive modes)
+RUN apt-get install -y --no-install-recommends \
         awscli \
         ansible \
-        terraform && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        terraform
 
 RUN pip install --no-cache-dir \
         prowler \
         scout-suite \
         checkov \
         terrascan \
-        kube-hunter \
-        kube-bench
+        kube-hunter
 
 # ==============================================================================
-# Phase 6: Rust Installation
-# ==============================================================================
-# Install Rust using official installer for latest version
-# Required for: rustscan, feroxbuster, pwninit, x8
-ENV CARGO_HOME=/root/.cargo
-ENV RUSTUP_HOME=/root/.rustup
-ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
-
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-# Install rustscan via Cargo (not in apt repositories)
-RUN cargo install rustscan
-
-# Install pwninit (CTF binary setup automation) via Cargo
-RUN cargo install pwninit
-
-# Build x8 (hidden parameter discovery) from source using Cargo (Rust)
-RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
-    cd /tmp/x8 && \
-    cargo build --release && \
-    install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
-    rm -rf /tmp/x8
-
-# ==============================================================================
-# Phase 7: Network & Reconnaissance Tools
+# Phase 6: Network & Reconnaissance Tools
 # ==============================================================================
 # Install network scanning and reconnaissance tools as documented in README.md
 # Ensure core reconnaissance tools are present even on minimal Kali images
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         nmap \
         masscan \
         autorecon \
@@ -159,17 +175,17 @@ RUN apt-get update && \
         enum4linux \
         nbtscan \
         arp-scan \
-        samba-common-bin && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        samba-common-bin
+
+# Install Rust-based network scanners
+RUN cargo install rustscan
 
 # ==============================================================================
-# Phase 8: Web Application Security Tools
+# Phase 7: Web Application Security Tools
 # ==============================================================================
 # Install web application testing tools as documented in README.md
 # Ensure required web tooling is installed explicitly for reproducibility
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         gobuster \
         feroxbuster \
         ffuf \
@@ -187,28 +203,21 @@ RUN apt-get update && \
         wafw00f \
         whatweb \
         burpsuite \
-        zaproxy && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        zaproxy
 
-# Install Go-based web tools referenced in README.md and MCP server
-# - katana: Next-generation crawling and spidering
+# Install Go-based reconnaissance & container utilities (ordered as below)
+# - katana: Next-generation crawling and spidering (JavaScript-aware)
 # - httpx: Fast HTTP probing and technology detection
-# - dalfox: Advanced XSS vulnerability scanning
-# - jaeles: Vulnerability scanning with custom signatures
-# - gau: Get All URLs from web archives
-# - waybackurls: Historical URL discovery from Wayback Machine
-# - anew: Append new lines to files (data processing)
-# - qsreplace: Query string parameter replacement
-# - nuclei: Web vulnerability scanning templates
-# - clairctl: Container vulnerability analysis CLI
-# - Sh1Yo/x8: Hidden parameters discovery suite
-# - projectdiscovery/*: Widely adopted tooling from ProjectDiscovery
-# - hahwul/dalfox: Powerful open-source XSS scanner and utility focused on automation
-# - jaeles-project/jaeles: community-audited vulnerability scanner
-# - lc/gau: well-known URL enumerator
-# - tomnomnom/*: Tools from Tom Hudson (ex-Google security)
-# - quay/clair: Container vulnerability static analysis
+# - nuclei: Template-driven vulnerability scanning (4000+ templates)
+# - dalfox: Advanced DOM-aware XSS scanner
+# - jaeles: Signature-based web vulnerability scanner
+# - gau: Aggregate historical URLs (Wayback/Common Crawl)
+# - waybackurls: Wayback Machine URL discovery
+# - assetfinder: Subdomain/asset enumerator
+# - anew: Append-only deduplication helper
+# - qsreplace: Query parameter mutation utility
+# - clairctl: Container vulnerability assessment CLI
+# - kube-bench: CIS Kubernetes benchmark checker
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
@@ -219,14 +228,21 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/tomnomnom/assetfinder@latest && \
     go install -v github.com/tomnomnom/anew@latest && \
     go install -v github.com/tomnomnom/qsreplace@latest && \
-    go install -v github.com/quay/clair/v4/cmd/clairctl@latest
+    go install -v github.com/quay/clair/v4/cmd/clairctl@latest && \
+    go install -v github.com/aquasecurity/kube-bench/cmd/kube-bench@latest
+
+# Build x8 (hidden parameter discovery) from source using Cargo
+RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
+    cd /tmp/x8 && \
+    cargo build --release && \
+    install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
+    rm -rf /tmp/x8
 
 # ==============================================================================
-# Phase 9: Authentication & Password Security Tools
+# Phase 8: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         hydra \
         john \
         hashcat \
@@ -236,16 +252,13 @@ RUN apt-get update && \
         hash-identifier \
         hashid \
         ophcrack \
-        hashcat-utils && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        hashcat-utils
 
 # ==============================================================================
-# Phase 10: Binary & Forensics Tools
+# Phase 9: Binary & Forensics Tools
 # ==============================================================================
 # Install binary analysis and forensics tooling referenced in README.md
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         gdb \
         radare2 \
         ghidra \
@@ -267,16 +280,19 @@ RUN apt-get update && \
         zbar-tools \
         p7zip-full \
         apktool \
-        android-tools-adb && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        android-tools-adb
 
-# Python-based binary helpers
+# Python-based binary helpers (latest stable releases)
+# - ropgadget: ROP/JOP gadget finder
+# - volatility3: Next-generation memory forensics framework
+# - uro: URL declutterer / deduplication utility
 RUN pip install --no-cache-dir \
         ropgadget \
-        volatility \
         volatility3 \
         uro
+
+# Install pwninit (CTF binary setup automation)
+RUN cargo install pwninit
 
 # Install zsteg (PNG/BMP steganography detection) via Ruby gem
 RUN gem install zsteg
@@ -285,18 +301,15 @@ RUN gem install zsteg
 RUN gem install one_gadget
 
 # ==============================================================================
-# Phase 11: OSINT & Intelligence Tools
+# Phase 10: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tooling referenced in README.md and MCP routes
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         exploitdb \
         kismet \
         sherlock \
         recon-ng \
-        spiderfoot && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        spiderfoot
 
 # Install OSINT companion CLIs distributed via npm
 RUN npm install -g \
@@ -309,35 +322,27 @@ RUN npm install -g \
         graphql-voyager
 
 # ==============================================================================
-# Phase 12: Wireless & Packet Analysis Tools
+# Phase 11: Wireless & Packet Analysis Tools
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         wireshark \
         tshark \
         tcpdump \
-        aircrack-ng && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        aircrack-ng
 
 # ==============================================================================
-# Phase 13: Exploitation Frameworks
+# Phase 12: Exploitation Frameworks
 # ==============================================================================
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        metasploit-framework && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y --no-install-recommends \
+        metasploit-framework
 
 # ==============================================================================
-# Phase 14: Runtime Security Agents
+# Phase 13: Runtime Security Agents
 # ==============================================================================
 RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
     apt-get update && \
-    apt-get install -y --no-install-recommends falco && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends falco
 
 # Additional CLI utilities required by MCP endpoints
 RUN npm install -g \
@@ -345,19 +350,16 @@ RUN npm install -g \
         insomnia-inso
 
 # ==============================================================================
-# Phase 15: Browser Agent Requirements
+# Phase 14: Browser Agent Requirements
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         chromium \
-        chromium-driver && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        chromium-driver
 
 # ==============================================================================
-# Phase 16: Security Tool Repositories & Wrappers
+# Phase 15: Security Tool Repositories & Wrappers
 # ==============================================================================
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper && \
@@ -397,6 +399,11 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     chmod +x /usr/local/bin/graphql-voyager && \
     printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
+
+# ==============================================================================
+# Phase 16: Image Cleanup
+# ==============================================================================
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
 # Phase 17: Cloud & Container Security Binaries
