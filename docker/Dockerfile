@@ -68,7 +68,7 @@ RUN apt-get update && \
 # Required for: rustscan, feroxbuster, pwninit
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
-ENV PATH="$CARGO_HOME/bin:$PATH"
+ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
@@ -290,7 +290,7 @@ RUN apt-get update && \
 # Phase 14: Python Virtual Environment & Dependencies
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
-COPY requirements.txt /opt/hexstrike/requirements.txt
+COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
 # Create virtual environment and install Python dependencies
 # Following README.md installation instructions exactly
@@ -374,17 +374,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     chmod +x /usr/local/bin/docker-bench-security
 
 # ==============================================================================
-# Phase 17: Application Files
-# ==============================================================================
-# Copy application source code
-COPY hexstrike_server.py /opt/hexstrike/
-COPY hexstrike_mcp.py /opt/hexstrike/
-
-# Ensure Go binaries are in PATH
-ENV PATH="$PATH:/root/go/bin"
-
-# ==============================================================================
-# Phase 18: Runtime Configuration
+# Phase 17: Runtime Configuration
 # ==============================================================================
 # Expose MCP server port as documented in README.md
 EXPOSE 8888
@@ -394,7 +384,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
 # ==============================================================================
-# Phase 19: Startup
+# Phase 18: Startup
 # ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
 CMD ["python3", "hexstrike_server.py"]
