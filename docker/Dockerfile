@@ -62,10 +62,21 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 3: Rust Installation
+# Phase 3: Python Virtual Environment Setup
+# ==============================================================================
+# Create virtual environment IMMEDIATELY after Python installation
+# This ensures all subsequent pip installs work correctly
+ENV VIRTUAL_ENV=/opt/hexstrike/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN python3 -m venv "$VIRTUAL_ENV" && \
+    pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# ==============================================================================
+# Phase 4: Rust Installation
 # ==============================================================================
 # Install Rust using official installer for latest version
-# Required for: rustscan, feroxbuster, pwninit
+# Required for: rustscan, feroxbuster, pwninit, x8
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
 ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
@@ -73,7 +84,7 @@ ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
-# Phase 4: Network & Reconnaissance Tools
+# Phase 5: Network & Reconnaissance Tools
 # ==============================================================================
 # Install network scanning and reconnaissance tools as documented in README.md
 # Ensure core reconnaissance tools are present even on minimal Kali images
@@ -101,7 +112,7 @@ RUN apt-get update && \
 RUN cargo install rustscan
 
 # ==============================================================================
-# Phase 5: Web Application Security Tools
+# Phase 6: Web Application Security Tools
 # ==============================================================================
 # Install web application testing tools as documented in README.md
 # Ensure required web tooling is installed explicitly for reproducibility
@@ -127,14 +138,15 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Build x8 (hidden parameter discovery) using Rust release build
+# Build x8 (hidden parameter discovery) from source using Cargo (Rust)
 RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
     cd /tmp/x8 && \
     cargo build --release && \
     install -m 0755 ./target/release/x8 /usr/local/bin/x8 && \
     rm -rf /tmp/x8
 
-# Install uro (URL declutterer) via pip (MCP uses `uro` CLI)
+# Install uro (URL declutterer for web security crawling/pentesting) via pip
+# Now pip works because venv was created in Phase 3
 RUN pip install --no-cache-dir uro
 
 # Install Go-based web tools referenced in README.md and MCP server
@@ -147,6 +159,7 @@ RUN pip install --no-cache-dir uro
 # - anew: Append new lines to files (data processing)
 # - qsreplace: Query string parameter replacement
 # - nuclei: Web vulnerability scanning templates
+# - clairctl: Container vulnerability analysis CLI
 # SECURITY VERIFIED: All GitHub repositories below are from trusted security researchers
 # - Sh1Yo/x8: 1.8k+ stars, signed releases, GPL-3.0 license
 # - projectdiscovery/*: Widely adopted tooling from ProjectDiscovery
@@ -154,6 +167,7 @@ RUN pip install --no-cache-dir uro
 # - jaeles-project/jaeles: 2k+ stars, community-audited vulnerability scanner
 # - lc/gau: 3k+ stars, well-known URL enumerator
 # - tomnomnom/*: Tools from Tom Hudson (ex-Google security)
+# - quay/clair: Container vulnerability static analysis
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
@@ -166,7 +180,7 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/quay/clair/v4/cmd/clairctl@latest
 
 # ==============================================================================
-# Phase 6: Authentication & Password Security Tools
+# Phase 7: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
 RUN apt-get update && \
@@ -184,7 +198,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 7: Binary & Forensics Tools
+# Phase 8: Binary & Forensics Tools
 # ==============================================================================
 # Install binary analysis and forensics tooling referenced in README.md/MCP
 RUN apt-get update && \
@@ -220,7 +234,7 @@ RUN gem install one_gadget
 RUN cargo install pwninit
 
 # ==============================================================================
-# Phase 8: OSINT & Intelligence Tools
+# Phase 9: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tooling referenced in README.md and MCP routes
 RUN apt-get update && \
@@ -241,7 +255,7 @@ RUN npm install -g \
         pwned
 
 # ==============================================================================
-# Phase 9: Wireless & Packet Analysis Tools
+# Phase 10: Wireless & Packet Analysis Tools
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
 RUN apt-get update && \
@@ -254,7 +268,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 10: Exploitation Frameworks
+# Phase 11: Exploitation Frameworks
 # ==============================================================================
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -263,7 +277,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 11: Runtime Security Agents
+# Phase 12: Runtime Security Agents
 # ==============================================================================
 RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
     apt-get update && \
@@ -277,7 +291,7 @@ RUN npm install -g \
         insomnia-inso
 
 # ==============================================================================
-# Phase 12: Browser Agent Requirements
+# Phase 13: Browser Agent Requirements
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
@@ -289,21 +303,16 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 13: Python Virtual Environment & Dependencies
+# Phase 14: Core Python Dependencies
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
-# Create virtual environment and install core Python dependencies
-ENV VIRTUAL_ENV=/opt/hexstrike/venv
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-RUN python3 -m venv "$VIRTUAL_ENV" && \
-    pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
+# Install core Python dependencies into virtual environment
+RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
 # ==============================================================================
-# Phase 14: Cloud & Container Security (Python CLIs)
+# Phase 15: Cloud & Container Security (Python CLIs)
 # ==============================================================================
 # Install cloud & container security CLIs used by MCP automations
 # - prowler: AWS/Azure/GCP security assessment
@@ -321,7 +330,7 @@ RUN pip install --no-cache-dir \
         kube-bench
 
 # ==============================================================================
-# Phase 15: Binary & Memory Analysis Extras
+# Phase 16: Binary & Memory Analysis Extras
 # ==============================================================================
 # Install additional binary analysis and memory forensics tooling
 # - ropgadget: ROP/JOP gadget finder
@@ -333,7 +342,7 @@ RUN pip install --no-cache-dir \
         volatility3
 
 # ==============================================================================
-# Phase 16: Security Tool Repositories & Wrappers
+# Phase 17: Security Tool Repositories & Wrappers
 # ==============================================================================
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper && \
@@ -367,7 +376,7 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
-# Phase 17: Cloud & Container Security Binaries
+# Phase 18: Cloud & Container Security Binaries
 # ==============================================================================
 # Install Trivy (container vulnerability scanner) as referenced in README.md
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
@@ -381,7 +390,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     chmod +x /usr/local/bin/docker-bench-security
 
 # ==============================================================================
-# Phase 18: Runtime Configuration
+# Phase 19: Runtime Configuration
 # ==============================================================================
 # Expose MCP server port as documented in README.md
 EXPOSE 8888
@@ -391,7 +400,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
 # ==============================================================================
-# Phase 19: Startup
+# Phase 20: Startup
 # ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
 CMD ["python3", "hexstrike_server.py"]
