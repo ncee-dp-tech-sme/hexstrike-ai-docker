@@ -1,0 +1,85 @@
+# ==============================================================================
+# HexStrike AI MCP Server v6.0 - Docker Compose Configuration
+# ==============================================================================
+# This compose file provides easy deployment of HexStrike MCP server
+# with proper network capabilities and volume mounts
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  hexstrike-mcp:
+    # Build configuration
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    
+    # Container name for easy reference
+    container_name: hexstrike-mcp-server
+    
+    # Image name and tag
+    image: hexstrike-ai:v6.0
+    
+    # Network capabilities required for security tools
+    # NET_RAW: Required for raw socket operations (nmap, masscan, etc.)
+    # NET_ADMIN: Required for network interface manipulation
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    
+    # Port mapping: Host:Container
+    # Exposes MCP server on host port 8888
+    ports:
+      - "8888:8888"
+    
+    # Environment variables (optional)
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBUG_MODE=false
+    
+    # Volume mounts for persistent data and scan results
+    # Uncomment and customize as needed
+    volumes:
+      # Mount for scan results output
+      - ./scan-results:/opt/hexstrike/results
+      
+      # Mount for logs
+      - ./logs:/opt/hexstrike/logs
+      
+      # Mount for custom wordlists (optional)
+      # - ./wordlists:/opt/hexstrike/wordlists:ro
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    # Network configuration (optional)
+    # Use host network for full network access
+    # network_mode: "host"
+    
+    # Security options (optional, more restrictive)
+    # security_opt:
+    #   - no-new-privileges:true
+    
+    # User configuration (run as non-root if possible)
+    # Note: Many security tools require root privileges
+    # user: "1000:1000"
+
+# Create named volumes for persistent data
+volumes:
+  scan-results:
+    driver: local
+  logs:
+    driver: local
+
+# Network configuration (optional)
+# networks:
+#   hexstrike-network:
+#     driver: bridge

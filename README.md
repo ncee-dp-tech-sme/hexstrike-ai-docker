@@ -18,6 +18,8 @@
 
 [📋 What's New](#whats-new-in-v60) • [🏗️ Architecture](#architecture-overview) • [🚀 Installation](#installation) • [🛠️ Features](#features) • [🤖 AI Agents](#ai-agents) • [📡 API Reference](#api-reference)
 
+• [🐳 Docker Build Instructions](./docker/BUILD.md)
+
 </div>
 
 ---
@@ -126,6 +128,45 @@ source hexstrike-env/bin/activate  # Linux/Mac
 pip3 install -r requirements.txt
 
 ```
+
+### 🐳 Docker Installation (Recommended)
+
+**Quick start with pre-built environment including all 150+ security tools:**
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/0x4m4/hexstrike-ai.git
+cd hexstrike-ai
+
+# 2. Build Docker image
+./scripts/build-docker-image.sh
+
+# 3. Run MCP server
+./scripts/run-docker-mcp-server.sh
+
+# Alternative: run in detached mode
+./scripts/run-docker-mcp-server-detached.sh
+
+# Alternative: using Docker Compose
+docker-compose -f docker/docker-compose.yml up -d
+```
+
+**Verify installation:**
+```bash
+# Test health endpoint
+curl http://localhost:8888/health
+```
+
+**Advantages:**
+- ✅ All 150+ security tools pre-installed
+- ✅ Consistent environment across systems
+- ✅ No dependency conflicts
+- ✅ Easy cleanup and updates
+- ✅ Isolated from host system
+
+**For detailed Docker documentation, see [Docker Build Guide](./docker/BUILD.md)**
+
+---
 
 ### Installation and Setting Up Guide for various AI Clients:
 
