@@ -48,8 +48,7 @@ RUN apt-get update && \
 # ==============================================================================
 # Update package lists and install core system utilities
 # Install core utilities required for tool installation
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
         wget \
@@ -80,7 +79,7 @@ RUN apt-get update && \
 # Install language runtimes required by various security tools
 # - Python: Primary language for HexStrike and many security tools
 # - Go: Required for tools like nuclei, httpx, subfinder, katana
-# - Node.js/npm: Required for social-analyzer, pwned, graphql tools
+# - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli, and pwned
 # - Java: Required for some binary analysis tools
 # - Ruby: Required for wpscan and other tools
 # - Rust: Required for: rustscan, feroxbuster, pwninit, x8
@@ -90,7 +89,6 @@ RUN apt-get update && \
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
 ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
-
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Install language runtimes required by various security tools
@@ -98,6 +96,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 # - python3-pip: Python package manager
 # - python3-venv: Virtual environments support
 # - python3-dev: Python headers for building native extensions
+# - pipx: Isolated CLI installs for Python tools
 # - golang: Go toolchain for Go-based security tools
 # - nodejs/npm: Node.js runtime and npm for JS-based tools
 # - default-jdk: Java Development Kit for JVM-based tools
@@ -108,6 +107,7 @@ RUN apt-get install -y --no-install-recommends \
         python3-pip \
         python3-venv \
         python3-dev \
+        pipx \
         golang \
         nodejs \
         npm \
@@ -124,17 +124,22 @@ RUN apt-get install -y --no-install-recommends \
 # This ensures all subsequent pip installs work correctly
 ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
 RUN python3.12 -m venv "$VIRTUAL_ENV" && \
     . "$VIRTUAL_ENV/bin/activate" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Speed up pip diagnostics (no version pinning)
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_NO_PYTHON_VERSION_WARNING=1
+# Ensure pipx CLIs on PATH
+ENV PATH="/root/.local/bin:${PATH}"
 
 # ==============================================================================
 # Phase 4: Core Python Dependencies
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
-
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
@@ -144,31 +149,33 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 # Install cloud & container security CLIs (order matches pip/apt below)
 # - ansible: Automation engine for configuration and orchestration
 # - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
-# - scoutsuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
-# - checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
+# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
+# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
 # - kube-hunter: Kubernetes penetration testing (active/passive modes)
-# - shodan: Official Shodan CLI
-# - censys: Official Censys CLI
-# - terrascan: Policy-as-code scanner for IaC (official GitHub release)
-# - opentofu (tofu): Open-source Terraform-compatible CLI (official APT repository)
-# - terraform (symlink): Compatibility symlink to OpenTofu binary
-# - awscli v2: Amazon Web Services Command Line Interface (official installer)
 RUN apt-get install -y --no-install-recommends \
         ansible
 
-RUN pip install --no-cache-dir \
-        prowler \
-        scoutsuite \
-        checkov \
-        kube-hunter \
-        shodan \
-        censys
+# Install cloud/container Python CLIs in isolated environments via pipx (official for Python CLIs)
+# - checkov: IaC scanning
+# - prowler: Cloud compliance
+# - ScoutSuite: Multi-cloud auditing
+# - kube-hunter: Kubernetes security probing
+# - shodan: Official Shodan CLI (Python)
+# - censys: Official Censys CLI (Python)
+RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
+    pipx install --pip-args="--no-cache-dir --prefer-binary" prowler     && \
+    pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  && \
+    pipx install --pip-args="--no-cache-dir --prefer-binary" kube-hunter && \
+    pipx install --pip-args="--no-cache-dir --prefer-binary" shodan      && \
+    pipx install --pip-args="--no-cache-dir --prefer-binary" censys
 
+# - Terrascan: Policy-as-code scanner for IaC
 RUN curl -L "$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Linux_x86_64.tar.gz")" > terrascan.tar.gz && \
     tar -xf terrascan.tar.gz terrascan && rm terrascan.tar.gz && \
     install terrascan /usr/local/bin && rm terrascan
 
-# OpenTofu APT repo (official) + install tofu, then symlink terraform -> tofu
+# - OpenTofu: Open-source Terraform-compatible CLI (official APT repository)
+# - terraform (symlink): Compatibility symlink to tofu binary
 RUN install -d -m 0755 /etc/apt/keyrings && \
     curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && \
     curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg && \
@@ -179,7 +186,7 @@ RUN install -d -m 0755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends tofu && \
     ln -sf /usr/bin/tofu /usr/local/bin/terraform
 
-# awscli v2 (official installer)
+# - AWS CLI v2: Amazon Web Services Command Line Interface (official installer)
 RUN cd /tmp && \
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
     apt-get install -y --no-install-recommends unzip && \
@@ -351,8 +358,6 @@ RUN apt-get install -y --no-install-recommends \
         testdisk \
         scalpel \
         bulk-extractor \
-        volatility \
-        hashpump \
         smbmap \
         zbar-tools \
         p7zip-full \
@@ -368,14 +373,39 @@ RUN pip install --no-cache-dir \
         volatility3 \
         uro
 
-# Install pwninit (CTF binary setup automation)
-RUN cargo install pwninit
+# HashPump (CLI-compatible) via PyPI bindings:
+# - hashpumpy: Python bindings providing length extension functionality
+# - Provide a minimal wrapper that matches the original "hashpump" CLI interface
+RUN pip install --no-cache-dir hashpumpy
 
-# Install zsteg (PNG/BMP steganography detection) via Ruby gem
-RUN gem install zsteg
+# HashPump CLI wrapper (uses hashpumpy bindings from PyPI)
+RUN cat >/usr/local/bin/hashpump <<'PY'
+#!/usr/bin/env python3
+import argparse
+from hashpumpy import hashpump
 
-# Install one_gadget (ROP gadget finder for GLIBC)
-RUN gem install one_gadget
+parser = argparse.ArgumentParser(description="Hash length extension (HashPump-compatible wrapper)")
+parser.add_argument("-s", "--signature", required=True, help="Original hex signature")
+parser.add_argument("-d", "--data", required=True, help="Original data")
+parser.add_argument("-k", "--key-length", required=True, type=int, help="Length of unknown key (bytes)")
+parser.add_argument("-a", "--append-data", required=True, help="Data to append")
+parser.add_argument("-m", "--algorithm", default="md5",
+                    choices=["md5","sha1","sha256","sha512"],
+                    help="Hash algorithm (default: md5)")
+args, _ = parser.parse_known_args()
+
+new_sig, new_msg = hashpump(args.signature, args.data, args.append_data, args.key_length, args.algorithm)
+if isinstance(new_msg, bytes):
+    try:
+        new_msg = new_msg.decode("latin1")
+    except Exception:
+        new_msg = new_msg.decode("utf-8", errors="ignore")
+
+print(f"New signature: {new_sig}")
+print(f"New string: {new_msg}")
+PY
+
+RUN chmod +x /usr/local/bin/hashpump
 
 # ==============================================================================
 # Phase 10: OSINT & Intelligence Tools
@@ -431,14 +461,18 @@ RUN apt-get install -y --no-install-recommends \
 # Phase 13: Runtime Security Agents
 # ==============================================================================
 # - falco: Runtime security tool (official APT repository, noninteractive)
+#   NOTE: during image build we avoid post-install scripts (systemd/dkms/driver)
+#   by downloading the .deb and extracting files without running maintainer scripts.
 RUN install -d -m 0755 /usr/share/keyrings && \
     curl -fsSL https://falco.org/repo/falcosecurity-packages.asc \
       | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/falco-archive-keyring.gpg] https://download.falco.org/packages/deb stable main" \
       > /etc/apt/sources.list.d/falcosecurity.list && \
     apt-get update -y && \
-    apt-get install -y --no-install-recommends dkms make clang llvm && \
-    FALCO_FRONTEND=noninteractive apt-get install -y --no-install-recommends falco
+    mkdir -p /tmp/falco && cd /tmp/falco && \
+    apt-get download falco && \
+    dpkg-deb -x ./falco_*.deb / && \
+    cd / && rm -rf /tmp/falco
 
 # Additional CLI utilities required by MCP endpoints
 # - newman: Postman CLI
@@ -492,12 +526,12 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
     ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
     ln -sf /usr/local/bin/inso /usr/local/bin/insomnia && \
-    ln -sf /usr/local/bin/volatility /usr/local/bin/vol && \
+    ln -sf /usr/local/bin/vol /usr/local/bin/volatility && \
     printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && \
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
     chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
@@ -508,11 +542,11 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # ==============================================================================
 # Phase 17: Cloud & Container Security Binaries
 # ==============================================================================
-# - trivy: Container and artifact vulnerability scanner (official installer)
+# Install Trivy (container vulnerability scanner)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
     sh -s -- -b /usr/local/bin
 
-# - docker-bench-security: Docker daemon configuration audit (official repo)
+# Install docker-bench-security (Docker daemon configuration audit)
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/docker/docker-bench-security.git /opt/hexstrike/tools/docker-bench-security && \
     rm -rf /opt/hexstrike/tools/docker-bench-security/.git && \
