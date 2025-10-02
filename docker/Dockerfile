@@ -48,7 +48,8 @@ RUN apt-get update && \
 # ==============================================================================
 # Update package lists and install core system utilities
 # Install core utilities required for tool installation
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
         wget \
@@ -58,21 +59,10 @@ RUN apt-get install -y --no-install-recommends \
         software-properties-common \
         build-essential \
         xz-utils \
-        uuid-dev \
-        libssl-dev \
-        zlib1g-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libsqlite3-dev \
-        libffi-dev \
-        liblzma-dev \
-        libgdbm-dev \
-        libnss3-dev \
-        tk-dev \
         ca-certificates \
         wordlists \
         httpie
-
+        
 # ==============================================================================
 # Phase 2: Language Runtimes & Compilers
 # ==============================================================================
@@ -95,18 +85,23 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 # - python3: CPython runtime for system packages
 # - python3-pip: Python package manager
 # - python3-venv: Virtual environments support
-# - python3-dev: Python headers for building native extensions
-# - pipx: Isolated CLI installs for Python tools
+# - pipx: Isolated Python app installer (official method for CLI tools)
 # - golang: Go toolchain for Go-based security tools
 # - nodejs/npm: Node.js runtime and npm for JS-based tools
 # - default-jdk: Java Development Kit for JVM-based tools
 # - ruby-full: Ruby and gems for Ruby-based tools
-# - autoconf/automake/pkg-config: build toolchain helpers
+# - autoconf/automake: build helpers some tools still expect
+# - Rust: required for rustscan, pwninit, x8 (installed via rustup)
+ENV CARGO_HOME=/root/.cargo
+ENV RUSTUP_HOME=/root/.rustup
+ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
+
+RUN curl https://rustup.rs -sSf | sh -s -- -y
+
 RUN apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
         python3-venv \
-        python3-dev \
         pipx \
         golang \
         nodejs \
@@ -114,8 +109,7 @@ RUN apt-get install -y --no-install-recommends \
         default-jdk \
         ruby-full \
         autoconf \
-        automake \
-        pkg-config
+        automake
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment Setup
@@ -124,15 +118,16 @@ RUN apt-get install -y --no-install-recommends \
 # This ensures all subsequent pip installs work correctly
 ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 RUN python3.12 -m venv "$VIRTUAL_ENV" && \
     . "$VIRTUAL_ENV/bin/activate" && \
     pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Speed up pip diagnostics (no version pinning)
+# Speed-up pip UX (no version pinning; always latest stable)
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_NO_PYTHON_VERSION_WARNING=1
-# Ensure pipx CLIs on PATH
+# Ensure pipx shims on PATH
 ENV PATH="/root/.local/bin:${PATH}"
 
 # ==============================================================================
@@ -140,13 +135,14 @@ ENV PATH="/root/.local/bin:${PATH}"
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
+
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
-# Install cloud & container security CLIs (order matches pip/apt below)
+# Install cloud & container security CLIs (order matches pipx install below)
 # - ansible: Automation engine for configuration and orchestration
 # - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
 # - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
@@ -155,9 +151,9 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 RUN apt-get install -y --no-install-recommends \
         ansible
 
-# Install cloud/container Python CLIs in isolated environments via pipx (official for Python CLIs)
+# Install Python CLIs via pipx (official, isolated)
 # - checkov: IaC scanning
-# - prowler: Cloud compliance
+# - prowler: Cloud compliance (requires Python < 3.13 — we provide 3.12)
 # - ScoutSuite: Multi-cloud auditing
 # - kube-hunter: Kubernetes security probing
 # - shodan: Official Shodan CLI (Python)
@@ -175,7 +171,7 @@ RUN curl -L "$(curl -s https://api.github.com/repos/tenable/terrascan/releases/l
     install terrascan /usr/local/bin && rm terrascan
 
 # - OpenTofu: Open-source Terraform-compatible CLI (official APT repository)
-# - terraform (symlink): Compatibility symlink to tofu binary
+# - terraform: compatibility symlink to tofu
 RUN install -d -m 0755 /etc/apt/keyrings && \
     curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && \
     curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg && \
@@ -186,7 +182,7 @@ RUN install -d -m 0755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends tofu && \
     ln -sf /usr/bin/tofu /usr/local/bin/terraform
 
-# - AWS CLI v2: Amazon Web Services Command Line Interface (official installer)
+# - AWS CLI v2: Amazon Web Services CLI (official installer)
 RUN cd /tmp && \
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
     apt-get install -y --no-install-recommends unzip && \
@@ -218,7 +214,8 @@ RUN apt-get install -y --no-install-recommends \
         enum4linux \
         nbtscan \
         arp-scan \
-        samba-common-bin
+        samba-common-bin \
+        samba-client
 
 # Install Rust-based network scanners
 RUN cargo install rustscan
@@ -290,7 +287,7 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/tomnomnom/qsreplace@latest && \
     go install -v github.com/quay/clair/v4/cmd/clairctl@latest
 
-# - kube-bench: CIS Kubernetes benchmark checker (installed from official GitHub release)
+# - kube-bench: CIS Kubernetes benchmark checker (official release)
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
@@ -362,7 +359,9 @@ RUN apt-get install -y --no-install-recommends \
         zbar-tools \
         p7zip-full \
         apktool \
-        android-tools-adb
+        android-tools-adb \
+        binutils \
+        xxd
 
 # Python-based binary helpers (latest stable releases)
 # - ropgadget: ROP/JOP gadget finder
@@ -373,39 +372,30 @@ RUN pip install --no-cache-dir \
         volatility3 \
         uro
 
-# HashPump (CLI-compatible) via PyPI bindings:
-# - hashpumpy: Python bindings providing length extension functionality
-# - Provide a minimal wrapper that matches the original "hashpump" CLI interface
-RUN pip install --no-cache-dir hashpumpy
+# Install pwninit (CTF binary setup automation)
+RUN cargo install pwninit
 
-# HashPump CLI wrapper (uses hashpumpy bindings from PyPI)
-RUN cat >/usr/local/bin/hashpump <<'PY'
-#!/usr/bin/env python3
-import argparse
-from hashpumpy import hashpump
+# Install zsteg (PNG/BMP steganography detection) via Ruby gem
+RUN gem install zsteg
 
-parser = argparse.ArgumentParser(description="Hash length extension (HashPump-compatible wrapper)")
-parser.add_argument("-s", "--signature", required=True, help="Original hex signature")
-parser.add_argument("-d", "--data", required=True, help="Original data")
-parser.add_argument("-k", "--key-length", required=True, type=int, help="Length of unknown key (bytes)")
-parser.add_argument("-a", "--append-data", required=True, help="Data to append")
-parser.add_argument("-m", "--algorithm", default="md5",
-                    choices=["md5","sha1","sha256","sha512"],
-                    help="Hash algorithm (default: md5)")
-args, _ = parser.parse_known_args()
+# Install one_gadget (ROP gadget finder for GLIBC)
+RUN gem install one_gadget
 
-new_sig, new_msg = hashpump(args.signature, args.data, args.append_data, args.key_length, args.algorithm)
-if isinstance(new_msg, bytes):
-    try:
-        new_msg = new_msg.decode("latin1")
-    except Exception:
-        new_msg = new_msg.decode("utf-8", errors="ignore")
-
-print(f"New signature: {new_sig}")
-print(f"New string: {new_msg}")
-PY
-
-RUN chmod +x /usr/local/bin/hashpump
+# HashPump: upstream binary is gone; provide a CLI-compatible wrapper via hashpumpy (PyPI)
+RUN pip install --no-cache-dir hashpumpy && \
+    printf '%s\n' '#!/usr/bin/env python3' \
+'import argparse' \
+'from hashpumpy import hashpump' \
+'parser = argparse.ArgumentParser()' \
+'parser.add_argument("-s","--signature", required=True)' \
+'parser.add_argument("-d","--data", required=True)' \
+'parser.add_argument("-k","--key_length", type=int, required=True)' \
+'parser.add_argument("-a","--append_data", required=True)' \
+'args = parser.parse_args()' \
+'new_sig, new_msg = hashpump(args.signature, args.data, args.append_data, args.key_length)' \
+'print(new_sig)' \
+'print(new_msg)' \
+> /usr/local/bin/hashpump && chmod +x /usr/local/bin/hashpump
 
 # ==============================================================================
 # Phase 10: OSINT & Intelligence Tools
@@ -459,9 +449,7 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 13: Runtime Security Agents
 # ==============================================================================
-# - falco: Runtime security tool (official APT repository, noninteractive)
-#   NOTE: during image build we avoid post-install scripts (systemd/dkms/driver)
-#   by downloading the .deb and extracting files without running maintainer scripts.
+# Install Falco from official repository without running post-install (avoid DKMS/systemd in build)
 RUN install -d -m 0755 /usr/share/keyrings && \
     curl -fsSL https://falco.org/repo/falcosecurity-packages.asc \
       | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg && \
@@ -474,11 +462,7 @@ RUN install -d -m 0755 /usr/share/keyrings && \
     cd / && rm -rf /tmp/falco
 
 # Additional CLI utilities required by MCP endpoints
-# - newman: Postman CLI
-# - insomnia-inso: Insomnia CLI
-RUN npm install -g \
-        newman \
-        insomnia-inso
+RUN npm install -g newman
 
 # ==============================================================================
 # Phase 14: Browser Agent Requirements
@@ -524,13 +508,12 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     mkdir -p /opt/burpsuite && \
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
     ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
-    ln -sf /usr/local/bin/inso /usr/local/bin/insomnia && \
-    ln -sf /usr/local/bin/vol /usr/local/bin/volatility && \
+    ln -sf /usr/local/bin/volatility /usr/local/bin/vol && \
     printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && \
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
     chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
