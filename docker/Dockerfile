@@ -74,14 +74,13 @@ RUN apt-get update && \
         wordlists \
         httpie
 
-
 # ==============================================================================
 # Phase 2: Language Runtimes & Compilers
 # ==============================================================================
 # Install language runtimes required by various security tools
 # - Python: Primary language for HexStrike and many security tools
 # - Go: Required for tools like nuclei, httpx, subfinder, katana
-# - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli, and pwned
+# - Node.js/npm: Required for social-analyzer, pwned, graphql tools
 # - Java: Required for some binary analysis tools
 # - Ruby: Required for wpscan and other tools
 # - Rust: Required for: rustscan, feroxbuster, pwninit, x8
@@ -95,13 +94,15 @@ ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # Install language runtimes required by various security tools
-# - Python: Primary language for HexStrike and many security tools
-# - Rust: Needed for cargo-based tooling (rustscan, pwninit, x8)
-# - Go: Required for nuclei, httpx, katana, etc.
-# - Node.js/npm: Required for social-analyzer, shodan-cli, censys-cli, pwned
-# - Java: Needed by ghidra and other JVM-based tools
-# - Ruby: Required for wpscan and other Ruby utilities
-# - Build toolchain: gcc, make, headers
+# - python3: CPython runtime for system packages
+# - python3-pip: Python package manager
+# - python3-venv: Virtual environments support
+# - python3-dev: Python headers for building native extensions
+# - golang: Go toolchain for Go-based security tools
+# - nodejs/npm: Node.js runtime and npm for JS-based tools
+# - default-jdk: Java Development Kit for JVM-based tools
+# - ruby-full: Ruby and gems for Ruby-based tools
+# - autoconf/automake/pkg-config: build toolchain helpers
 RUN apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
@@ -137,30 +138,53 @@ COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
-
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
-# Install cloud & container security CLIs (order matches pip install below)
+# Install cloud & container security CLIs (order matches pip/apt below)
+# - ansible: Automation engine for configuration and orchestration
 # - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
-# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
-# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
+# - scoutsuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
+# - checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
 # - kube-hunter: Kubernetes penetration testing (active/passive modes)
+# - shodan: Official Shodan CLI
+# - censys: Official Censys CLI
+# - terrascan: Policy-as-code scanner for IaC (official GitHub release)
+# - opentofu (tofu): Open-source Terraform-compatible CLI (official APT repository)
+# - terraform (symlink): Compatibility symlink to OpenTofu binary
+# - awscli v2: Amazon Web Services Command Line Interface (official installer)
 RUN apt-get install -y --no-install-recommends \
-        awscli \
-        ansible \
-        terraform
+        ansible
 
 RUN pip install --no-cache-dir \
         prowler \
-        ScoutSuite \
+        scoutsuite \
         checkov \
-        kube-hunter
+        kube-hunter \
+        shodan \
+        censys
 
-# - Terrascan: Policy-as-code scanner for IaC
 RUN curl -L "$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Linux_x86_64.tar.gz")" > terrascan.tar.gz && \
     tar -xf terrascan.tar.gz terrascan && rm terrascan.tar.gz && \
     install terrascan /usr/local/bin && rm terrascan
+
+# OpenTofu APT repo (official) + install tofu, then symlink terraform -> tofu
+RUN install -d -m 0755 /etc/apt/keyrings && \
+    curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && \
+    curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg && \
+    chmod a+r /etc/apt/keyrings/opentofu.gpg /etc/apt/keyrings/opentofu-repo.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" > /etc/apt/sources.list.d/opentofu.list && \
+    echo "deb-src [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" >> /etc/apt/sources.list.d/opentofu.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends tofu && \
+    ln -sf /usr/bin/tofu /usr/local/bin/terraform
+
+# awscli v2 (official installer)
+RUN cd /tmp && \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
+    apt-get install -y --no-install-recommends unzip && \
+    unzip -q awscliv2.zip && ./aws/install && \
+    rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # ==============================================================================
 # Phase 6: Network & Reconnaissance Tools
@@ -197,6 +221,24 @@ RUN cargo install rustscan
 # ==============================================================================
 # Install web application testing tools as documented in README.md
 # Ensure required web tooling is installed explicitly for reproducibility
+# - gobuster: Directory and DNS enumeration
+# - feroxbuster: Recursive content discovery
+# - ffuf: Fast web fuzzer
+# - dotdotpwn: Path traversal fuzzer
+# - xsser: XSS framework
+# - wfuzz: Web application fuzzer
+# - dirb: Web content scanner
+# - dirsearch: Web path scanner
+# - nikto: Web server vulnerability scanner
+# - sqlmap: Automatic SQL injection tool
+# - wpscan: WordPress security scanner
+# - arjun: HTTP parameter discovery
+# - paramspider: Parameter miner
+# - hakrawler: Web endpoint crawler
+# - wafw00f: WAF fingerprinting
+# - whatweb: Web technology fingerprinting
+# - burpsuite: Web security testing platform
+# - zaproxy: OWASP ZAP web security scanner
 RUN apt-get install -y --no-install-recommends \
         gobuster \
         feroxbuster \
@@ -229,7 +271,6 @@ RUN apt-get install -y --no-install-recommends \
 # - anew: Append-only deduplication helper
 # - qsreplace: Query parameter mutation utility
 # - clairctl: Container vulnerability assessment CLI
-# - kube-bench: CIS Kubernetes benchmark checker
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
@@ -240,8 +281,22 @@ RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
     go install -v github.com/tomnomnom/assetfinder@latest && \
     go install -v github.com/tomnomnom/anew@latest && \
     go install -v github.com/tomnomnom/qsreplace@latest && \
-    go install -v github.com/quay/clair/v4/cmd/clairctl@latest && \
-    go install -v github.com/aquasecurity/kube-bench/cmd/kube-bench@latest
+    go install -v github.com/quay/clair/v4/cmd/clairctl@latest
+
+# - kube-bench: CIS Kubernetes benchmark checker (installed from official GitHub release)
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) farch="linux_amd64" ;; \
+      arm64) farch="linux_arm64" ;; \
+      *) echo "unsupported arch: $arch"; exit 1 ;; \
+    esac; \
+    curl -fsSL https://api.github.com/repos/aquasecurity/kube-bench/releases/latest \
+      | awk -v f="$farch" -F'"' '/browser_download_url/ && $0 ~ f".tar.gz" {print $4; exit}' \
+      | xargs -r curl -fsSL -o /tmp/kube-bench.tgz; \
+    tar -C /tmp -xzf /tmp/kube-bench.tgz kube-bench; \
+    install /tmp/kube-bench /usr/local/bin/kube-bench; \
+    rm -f /tmp/kube-bench.tgz /tmp/kube-bench
 
 # Build x8 (hidden parameter discovery) from source using Cargo
 RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
@@ -254,6 +309,16 @@ RUN git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8 && \
 # Phase 8: Authentication & Password Security Tools
 # ==============================================================================
 # Install password cracking and authentication testing tools
+# - hydra: Network login cracker
+# - john: Password cracker
+# - hashcat: GPU-accelerated password recovery
+# - medusa: Parallel brute-forcer
+# - patator: Multi-purpose brute-forcer
+# - evil-winrm: WinRM shell for Windows
+# - hash-identifier: Hash type identification
+# - hashid: Hash algorithm identifier
+# - ophcrack: Windows password cracker
+# - hashcat-utils: Utilities for hashcat
 RUN apt-get install -y --no-install-recommends \
         hydra \
         john \
@@ -316,6 +381,11 @@ RUN gem install one_gadget
 # Phase 10: OSINT & Intelligence Tools
 # ==============================================================================
 # Install OSINT tooling referenced in README.md and MCP routes
+# - exploitdb: Exploit Database
+# - kismet: Wireless network detector
+# - sherlock: Username search across sites
+# - recon-ng: Web recon framework
+# - spiderfoot: OSINT automation
 RUN apt-get install -y --no-install-recommends \
         exploitdb \
         kismet \
@@ -324,10 +394,13 @@ RUN apt-get install -y --no-install-recommends \
         spiderfoot
 
 # Install OSINT companion CLIs distributed via npm
+# - social-analyzer: Social media analysis toolkit
+# - pwned: Have I Been Pwned CLI
+# - jwt-cracker: JWT cracking utility
+# - graphql-playground-html: GraphQL Playground static server
+# - graphql-voyager: GraphQL schema visualization
 RUN npm install -g \
         social-analyzer \
-        shodan-cli \
-        censys-cli \
         pwned \
         jwt-cracker \
         graphql-playground-html \
@@ -337,6 +410,10 @@ RUN npm install -g \
 # Phase 11: Wireless & Packet Analysis Tools
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
+# - wireshark: Network protocol analyzer
+# - tshark: Terminal-based Wireshark
+# - tcpdump: Packet capture utility
+# - aircrack-ng: 802.11 WEP/WPA cracking
 RUN apt-get install -y --no-install-recommends \
         wireshark \
         tshark \
@@ -346,17 +423,26 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 12: Exploitation Frameworks
 # ==============================================================================
+# - metasploit-framework: Penetration testing framework
 RUN apt-get install -y --no-install-recommends \
         metasploit-framework
 
 # ==============================================================================
 # Phase 13: Runtime Security Agents
 # ==============================================================================
-RUN curl -fsSL https://dl.cloudsmith.io/public/falcosecurity/falco/cfg/setup/bash.deb.sh | bash && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends falco
+# - falco: Runtime security tool (official APT repository, noninteractive)
+RUN install -d -m 0755 /usr/share/keyrings && \
+    curl -fsSL https://falco.org/repo/falcosecurity-packages.asc \
+      | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/falco-archive-keyring.gpg] https://download.falco.org/packages/deb stable main" \
+      > /etc/apt/sources.list.d/falcosecurity.list && \
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends dkms make clang llvm && \
+    FALCO_FRONTEND=noninteractive apt-get install -y --no-install-recommends falco
 
 # Additional CLI utilities required by MCP endpoints
+# - newman: Postman CLI
+# - insomnia-inso: Insomnia CLI
 RUN npm install -g \
         newman \
         insomnia-inso
@@ -366,6 +452,8 @@ RUN npm install -g \
 # ==============================================================================
 # Install Chrome/Chromium and ChromeDriver as documented in README.md
 # Required for Browser Agent functionality with Selenium
+# - chromium: Chromium browser
+# - chromium-driver: WebDriver for Chromium
 RUN apt-get install -y --no-install-recommends \
         chromium \
         chromium-driver
@@ -409,7 +497,7 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
     chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ', '.join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
@@ -420,11 +508,11 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # ==============================================================================
 # Phase 17: Cloud & Container Security Binaries
 # ==============================================================================
-# Install Trivy (container vulnerability scanner)
+# - trivy: Container and artifact vulnerability scanner (official installer)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | \
     sh -s -- -b /usr/local/bin
 
-# Install docker-bench-security (Docker daemon configuration audit)
+# - docker-bench-security: Docker daemon configuration audit (official repo)
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/docker/docker-bench-security.git /opt/hexstrike/tools/docker-bench-security && \
     rm -rf /opt/hexstrike/tools/docker-bench-security/.git && \
