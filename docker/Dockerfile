@@ -1,11 +1,20 @@
 # ==============================================================================
-# HexStrike AI MCP Server v6.0 - Docker Image
+# HexStrike AI MCP Server v6.0 - Docker Image (Multi-stage Build)
 # ==============================================================================
-# Base image: Kali Linux Rolling (includes 150+ pre-installed security tools)
+# Stage 1: Official Python 3.12 image
+# Stage 2: Kali Linux Rolling (includes 150+ pre-installed security tools)
 # Repository: https://github.com/0x4m4/hexstrike-ai
 # License: MIT
 # ==============================================================================
 
+# ==============================================================================
+# Stage 1: Python 3.12 Base
+# ==============================================================================
+FROM python:3.12-slim AS python-base
+
+# ==============================================================================
+# Stage 2: Kali Linux with Python 3.12
+# ==============================================================================
 FROM docker.io/kalilinux/kali-rolling:latest
 
 # Prevent interactive prompts during installation
@@ -13,6 +22,26 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Set working directory
 WORKDIR /opt/hexstrike
+
+# ==============================================================================
+# Copy Python 3.12 from Stage 1
+# Latest stable needed for prowler compatibility is 3.12
+# ==============================================================================
+# (Adjustment) Copy the whole /usr/local to avoid missing CPython components
+COPY --from=python-base /usr/local/ /usr/local/
+
+RUN ln -sf /usr/local/bin/python3.12 /usr/local/bin/python3 && \
+    ln -sf /usr/local/bin/python3.12 /usr/local/bin/python && \
+    ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip3 && \
+    ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip && \
+    ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
+    ldconfig
+
+# (Adjustment) Ensure Python runtime libs on Kali
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libexpat1 libsqlite3-0 libbz2-1.0 libgdbm6 libncursesw6 libreadline8 \
+        libffi8 liblzma5 libssl3 libuuid1 tk
 
 # ==============================================================================
 # Phase 1: Base System Packages
@@ -65,19 +94,6 @@ ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-
-# Install Python 3.12 (latest stable needed for prowler compatibility)
-RUN set -euo pipefail; \
-    version="$(curl -fsSL https://www.python.org/ftp/python/ | grep -oE '3\\.12\\.[0-9]+' | sort -V | tail -1)"; \
-    curl -fsSL "https://www.python.org/ftp/python/${version}/Python-${version}.tgz" -o /tmp/Python.tgz && \
-    tar -xzf /tmp/Python.tgz -C /tmp && \
-    cd /tmp/Python-${version} && \
-    ./configure --enable-optimizations --with-ensurepip=install && \
-    make -j"$(nproc)" && \
-    make altinstall && \
-    cd / && \
-    rm -rf /tmp/Python.tgz /tmp/Python-${version}
-
 # Install language runtimes required by various security tools
 # - Python: Primary language for HexStrike and many security tools
 # - Rust: Needed for cargo-based tooling (rustscan, pwninit, x8)
@@ -99,13 +115,6 @@ RUN apt-get install -y --no-install-recommends \
         autoconf \
         automake \
         pkg-config
-
-# Install Rust toolchain (cargo) for security utilities
-ENV CARGO_HOME=/root/.cargo
-ENV RUSTUP_HOME=/root/.rustup
-ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
-
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment Setup
@@ -136,7 +145,6 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 # - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
 # - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
 # - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
-# - Terrascan: Policy-as-code scanner for IaC
 # - kube-hunter: Kubernetes penetration testing (active/passive modes)
 RUN apt-get install -y --no-install-recommends \
         awscli \
@@ -145,10 +153,14 @@ RUN apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir \
         prowler \
-        scout-suite \
+        ScoutSuite \
         checkov \
-        terrascan \
         kube-hunter
+
+# - Terrascan: Policy-as-code scanner for IaC
+RUN curl -L "$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest | grep -o -E "https://.+?_Linux_x86_64.tar.gz")" > terrascan.tar.gz && \
+    tar -xf terrascan.tar.gz terrascan && rm terrascan.tar.gz && \
+    install terrascan /usr/local/bin && rm terrascan
 
 # ==============================================================================
 # Phase 6: Network & Reconnaissance Tools
