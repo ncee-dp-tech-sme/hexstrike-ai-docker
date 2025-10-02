@@ -453,7 +453,6 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 12: Exploitation Frameworks
 # ==============================================================================
-# - metasploit-framework: Penetration testing framework
 RUN apt-get install -y --no-install-recommends \
         metasploit-framework
 
