@@ -91,12 +91,6 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 # - default-jdk: Java Development Kit for JVM-based tools
 # - ruby-full: Ruby and gems for Ruby-based tools
 # - autoconf/automake: build helpers some tools still expect
-# - Rust: required for rustscan, pwninit, x8 (installed via rustup)
-ENV CARGO_HOME=/root/.cargo
-ENV RUSTUP_HOME=/root/.rustup
-ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
-
-RUN curl https://rustup.rs -sSf | sh -s -- -y
 
 RUN apt-get install -y --no-install-recommends \
         python3 \
@@ -110,6 +104,12 @@ RUN apt-get install -y --no-install-recommends \
         ruby-full \
         autoconf \
         automake
+
+# - Rust: required for rustscan, pwninit, x8 (installed via rustup)
+ENV CARGO_HOME=/root/.cargo
+ENV RUSTUP_HOME=/root/.rustup
+ENV PATH="$CARGO_HOME/bin:/root/go/bin:$PATH"
+RUN curl https://rustup.rs -sSf | sh -s -- -y
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment Setup
@@ -215,7 +215,7 @@ RUN apt-get install -y --no-install-recommends \
         nbtscan \
         arp-scan \
         samba-common-bin \
-        samba-client
+        smbclient
 
 # Install Rust-based network scanners
 RUN cargo install rustscan
@@ -508,7 +508,6 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     mkdir -p /opt/burpsuite && \
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
     ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
-    ln -sf /usr/local/bin/volatility /usr/local/bin/vol && \
     printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && \
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
