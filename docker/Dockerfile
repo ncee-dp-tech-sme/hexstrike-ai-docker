@@ -427,7 +427,7 @@ RUN npm install -g \
         graphql-voyager
 
 # ==============================================================================
-# Phase 11: Wireless & Packet Analysis Tools
+# Phase 11: Wireless & Packet Analysis
 # ==============================================================================
 # Install packet capture / 802.11 tooling used by network automation endpoints
 # - wireshark: Network protocol analyzer
