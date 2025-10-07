@@ -488,7 +488,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/longld/peda.git /root/peda && \
     rm -rf /root/peda/.git && \
     mkdir -p /opt/stegsolve && \
-    curl -fsSL -o /opt/stegsolve/stegsolve.jar https://github.com/zardus/ctf-tools/raw/master/stegsolve/Stegsolve.jar && \
+    curl -fsSL -o /opt/stegsolve/stegsolve.jar https://github.com/Giotino/stegsolve/releases/download/v1.4/StegSolve-1.4.jar && \
     chmod 644 /opt/stegsolve/stegsolve.jar && \
     ln -s /opt/hexstrike/tools/libc-database /opt/libc-database && \
     ln -s /opt/hexstrike/tools/jwt_tool /opt/jwt_tool
