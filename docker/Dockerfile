@@ -101,11 +101,7 @@ WORKDIR /opt/hexstrike
 
 # Bring CPython 3.12 from Stage A (needed by prowler and our venv)
 COPY --from=python-base /usr/local/ /usr/local/
-RUN ln -sf /usr/local/bin/python3.12 /usr/local/bin/python3 && \
-    ln -sf /usr/local/bin/python3.12 /usr/local/bin/python && \
-    ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip3 && \
-    ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip && \
-    ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
+RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
 
 # Minimal Python runtime libs (no system tools here)
@@ -150,15 +146,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       npm \
       default-jdk \
       ruby-full \
-      pipx
-
+      pipx \
+      python3-venv
+ENV PIPX_DEFAULT_PYTHON=/usr/bin/python3
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment
 # ==============================================================================
 ENV VIRTUAL_ENV=/opt/hexstrike/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN python3 -m venv "$VIRTUAL_ENV" \
+RUN /usr/bin/python3 -m venv "$VIRTUAL_ENV" \
  && . "$VIRTUAL_ENV/bin/activate" \
  && pip install --no-cache-dir --upgrade pip setuptools wheel
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -172,12 +169,17 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
+# Build deps per compilare wheel su Python 3.13 (es. msgpack); rimossi al cleanup finale
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      python3-dev
+
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
 # Slim down Python virtualenv to reduce layer size
 RUN set -eux; \
-    site="$VIRTUAL_ENV/lib/python3.12/site-packages"; \
+    site="$VIRTUAL_ENV/lib/python3.13/site-packages"; \
     find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
     find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
     find "$site" -name "*.pyc" -delete; \
@@ -199,7 +201,7 @@ RUN apt-get install -y --no-install-recommends \
 # - shodan: Official Shodan CLI (Python)
 # - censys: Official Censys CLI (Python)
 RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
-    pipx install --pip-args="--no-cache-dir --prefer-binary" prowler     && \
+    pipx install --python /usr/local/bin/python3.12 --pip-args="--no-cache-dir --prefer-binary" prowler     && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" kube-hunter && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" shodan      && \
@@ -505,7 +507,7 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.
 
 # Slim down again after tool deps
 RUN set -eux; \
-    site="$VIRTUAL_ENV/lib/python3.12/site-packages"; \
+    site="$VIRTUAL_ENV/lib/python3.13/site-packages"; \
     find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
     find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
     find "$site" -name "*.pyc" -delete; \
@@ -557,7 +559,9 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 17: Image Cleanup
 # ==============================================================================
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Rimuovi i build deps per tenere il runtime pulito (coerente col cleanup finale)
+RUN apt-get purge -y --auto-remove build-essential python3-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
 # Phase 18: Runtime Configuration
