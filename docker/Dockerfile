@@ -494,7 +494,8 @@ RUN mkdir -p /opt/hexstrike/tools && \
     ln -s /opt/hexstrike/tools/jwt_tool /opt/jwt_tool
 
 # Python requirements for cloned tools
-RUN pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.txt && \
+# NOTE: CloudMapper pins matplotlib==3.4.3 that conflicts with core matplotlib>=3.5
+RUN /usr/local/bin/python3.12 -m pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.txt && \
     pip install --no-cache-dir -r /opt/hexstrike/tools/pacu/requirements.txt && \
     pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
 
@@ -507,7 +508,7 @@ RUN set -eux; \
     command -v strip >/dev/null 2>&1 && find "$site" -type f -name "*.so" -exec strip -s {} + || true
 
 # Create convenience entrypoints expected by MCP routes/health checks
-RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
+RUN printf '#!/bin/bash\n/usr/local/bin/python3.12 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
     chmod +x /usr/local/bin/cloudmapper && \
     printf '#!/bin/bash\npython3 /opt/hexstrike/tools/pacu/pacu.py "$@"\n' > /usr/local/bin/pacu && \
     chmod +x /usr/local/bin/pacu && \
@@ -518,7 +519,7 @@ RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
     chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print(\"Usage: api-schema-analyzer <schema-file>\")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, \"r\", encoding=\"utf-8\") as f:\n    data = json.load(f)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
