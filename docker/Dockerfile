@@ -175,23 +175,27 @@ COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
+# Slim down Python virtualenv to reduce layer size
+RUN set -eux; \
+    site="$VIRTUAL_ENV/lib/python3.12/site-packages"; \
+    find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
+    find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
+    find "$site" -name "*.pyc" -delete; \
+    command -v strip >/dev/null 2>&1 && find "$site" -type f -name "*.so" -exec strip -s {} + || true
+
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
 # Install cloud & container security CLIs (order matches pipx install below)
 # - ansible: Automation engine for configuration and orchestration
-# - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
-# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
-# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
-# - kube-hunter: Kubernetes penetration testing (active/passive modes)
 RUN apt-get install -y --no-install-recommends \
         ansible
 
 # Install Python CLIs via pipx (official, isolated)
-# - checkov: IaC scanning
-# - prowler: Cloud compliance (requires Python < 3.13 — we provide 3.12)
-# - ScoutSuite: Multi-cloud auditing
-# - kube-hunter: Kubernetes security probing
+# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
+# - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
+# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
+# - kube-hunter: Kubernetes penetration testing (active/passive modes)
 # - shodan: Official Shodan CLI (Python)
 # - censys: Official Censys CLI (Python)
 RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
@@ -309,7 +313,6 @@ RUN apt-get install -y --no-install-recommends \
 # - assetfinder: Subdomain/asset enumerator
 # - anew: Append-only deduplication helper
 # - qsreplace: Query parameter mutation utility
-# - clairctl: Container vulnerability assessment CLI
 COPY --from=go-builder /out/* /usr/local/bin/
 
 # x8 - Hidden parameter discovery (from Rust builder)
@@ -500,6 +503,14 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.
     pip install --no-cache-dir -r /opt/hexstrike/tools/pacu/requirements.txt && \
     pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
 
+# Slim down again after tool deps
+RUN set -eux; \
+    site="$VIRTUAL_ENV/lib/python3.12/site-packages"; \
+    find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
+    find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
+    find "$site" -name "*.pyc" -delete; \
+    command -v strip >/dev/null 2>&1 && find "$site" -type f -name "*.so" -exec strip -s {} + || true
+
 # Create convenience entrypoints expected by MCP routes/health checks
 RUN printf '#!/bin/bash\npython3 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
     chmod +x /usr/local/bin/cloudmapper && \
@@ -529,7 +540,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     printf '#!/bin/bash\nset -e\ncd /opt/hexstrike/tools/docker-bench-security\nexec ./docker-bench-security.sh "$@"\n' > /usr/local/bin/docker-bench-security && \
     chmod +x /usr/local/bin/docker-bench-security
 
-# clairctl — Clair CLI (official prebuilt release)
+# - clairctl: Container vulnerability assessment CLI
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; case "$arch" in \
       amd64) asset_pat="linux_amd64";; \
