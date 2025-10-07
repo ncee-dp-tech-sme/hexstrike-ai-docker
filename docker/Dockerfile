@@ -106,14 +106,14 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # ==============================================================================
 # Phase 1: Base System Packages
 # ==============================================================================
-# - curl - Data transfer per installer e health check
-# - wget - Downloader alternativo
-# - git - Clonare tool upstream quando serve
-# - ca-certificates - Trust store TLS per download sicuri
-# - gnupg2, lsb-release - Gestione chiavi repo e info release
-# - xz-utils - Supporto XZ (alcuni installer lo usano)
-# - httpie - Client HTTP per diagnostica
-# - wordlists - Wordlist comuni (SecOps)
+# - curl - Data transfer for installers and health checks
+# - wget - Alternative downloader
+# - git - Clone upstream tools when needed
+# - ca-certificates - TLS trust store for secure downloads
+# - gnupg2, lsb-release - Repository key management and release info
+# - xz-utils - XZ compression support (used by some installers)
+# - httpie - HTTP client for diagnostics
+# - wordlists - Common wordlists for SecOps
 RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
@@ -129,11 +129,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 2: Language Runtimes (runtime only; no compilers/dev headers here)
 # ==============================================================================
-# Install runtime usati dai tool (Go/Rust sono nei builder stage dedicati)
-# - Node.js + npm - richiesti da alcuni tool OSINT/web
-# - Java (JDK) - richiesto da alcuni tool di analisi binaria
-# - Ruby - richiesto da WPScan e gem ausiliarie
-# - pipx - installer isolato per CLI Python (Checkov, Prowler, ecc.)
+# Runtimes used by the tooling (Go/Rust come from their dedicated builder stages)
+# - Node.js + npm - Required by some OSINT and web tools
+# - Java (JDK) - Required by certain binary analysis tools
+# - Ruby - Required by WPScan and auxiliary gems
+# - pipx - Isolated installer for Python CLIs (Checkov, Prowler, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       nodejs \
       npm \
@@ -162,7 +162,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
-# Build deps per compilare wheel native (es. msgpack, netifaces) - rimossi nel cleanup finale
+# Build deps to compile native wheels (e.g., msgpack, netifaces) - removed in final cleanup
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       python3-dev
@@ -181,7 +181,7 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
-# Install cloud & container security CLIs (order matches pipx install below)
+# Install cloud and container security CLIs (order matches pipx install below)
 # - ansible - Automation engine for configuration and orchestration
 RUN apt-get install -y --no-install-recommends \
         ansible
