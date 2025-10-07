@@ -114,7 +114,7 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # - xz-utils — Supporto XZ (alcuni installer lo usano)
 # - httpie — Client HTTP per diagnostica
 # - wordlists — Wordlist comuni (SecOps)
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
         wget \
