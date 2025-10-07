@@ -19,7 +19,6 @@ FROM python:3.12-slim AS python-base
 #   Builds Go CLIs once and exports binaries under /out for the final image.
 #   We use ephemeral GOMODCACHE/GOCACHE and wipe them in the same RUN to avoid
 #   persisting large module/testdata blobs in the layer.
-#   NOTE: clairctl is NOT built here (installed from official release later).
 # ------------------------------------------------------------------------------
 FROM golang:latest AS go-builder
 ENV GO111MODULE=on \
@@ -104,11 +103,6 @@ COPY --from=python-base /usr/local/ /usr/local/
 RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
 
-# Minimal Python runtime libs (no system tools here)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      libexpat1 libsqlite3-0 libbz2-1.0 libgdbm6 libncursesw6 libreadline8 \
-      libffi8 liblzma5 libssl3 libuuid1 tk
-
 # ==============================================================================
 # Phase 1: Base System Packages
 # ==============================================================================
@@ -169,7 +163,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
-# Build deps per compilare wheel su Python 3.13 (es. msgpack); rimossi al cleanup finale
+# Build deps per compilare wheel native (es. msgpack, netifaces) — rimossi nel cleanup finale
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       python3-dev
@@ -559,7 +553,6 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 17: Image Cleanup
 # ==============================================================================
-# Rimuovi i build deps per tenere il runtime pulito (coerente col cleanup finale)
 RUN apt-get purge -y --auto-remove build-essential python3-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
