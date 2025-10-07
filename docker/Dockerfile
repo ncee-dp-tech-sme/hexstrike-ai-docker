@@ -130,7 +130,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Phase 2: Language Runtimes (runtime only; no compilers/dev headers here)
 # ==============================================================================
 # Install runtime usati dai tool (Go/Rust sono nei builder stage dedicati)
-# - Python 3.12: fornito dallo Stage A (CPython in /usr/local)
 # - Node.js + npm: richiesti da alcuni tool OSINT/web
 # - Java (JDK): richiesto da alcuni tool di analisi binaria
 # - Ruby: richiesto da WPScan e gem ausiliarie
