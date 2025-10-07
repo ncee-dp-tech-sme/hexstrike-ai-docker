@@ -98,7 +98,7 @@ FROM docker.io/kalilinux/kali-rolling:latest
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
 
-# Bring CPython 3.12 from Stage A (needed by prowler and our venv)
+# Bring CPython 3.12 from Stage A (needed by prowler)
 COPY --from=python-base /usr/local/ /usr/local/
 RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
