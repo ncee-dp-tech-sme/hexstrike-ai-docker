@@ -71,19 +71,19 @@ RUN set -eux; \
     rustc --version; cargo --version; \
     mkdir -p /out
 
-# rustscan — Port scanner (Rust)
+# rustscan - Port scanner (Rust)
 RUN set -eux; \
     cargo install --root /tmp --bins rustscan; \
     install -m 0755 /tmp/bin/rustscan /out/rustscan; \
     rm -rf /tmp/* ~/.cargo/registry ~/.cargo/git
 
-# pwninit — CTF binary setup automation (Rust)
+# pwninit - CTF binary setup automation (Rust)
 RUN set -eux; \
     cargo install --root /tmp --bins pwninit; \
     install -m 0755 /tmp/bin/pwninit /out/pwninit; \
     rm -rf /tmp/* ~/.cargo/registry ~/.cargo/git
 
-# x8 — Hidden parameter discovery (Rust)
+# x8 - Hidden parameter discovery (Rust)
 RUN set -eux; \
     git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8; \
     cargo build --manifest-path /tmp/x8/Cargo.toml --release; \
@@ -106,14 +106,14 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # ==============================================================================
 # Phase 1: Base System Packages
 # ==============================================================================
-# - curl — Data transfer per installer e health check
-# - wget — Downloader alternativo
-# - git — Clonare tool upstream quando serve
-# - ca-certificates — Trust store TLS per download sicuri
-# - gnupg2, lsb-release — Gestione chiavi repo e info release
-# - xz-utils — Supporto XZ (alcuni installer lo usano)
-# - httpie — Client HTTP per diagnostica
-# - wordlists — Wordlist comuni (SecOps)
+# - curl - Data transfer per installer e health check
+# - wget - Downloader alternativo
+# - git - Clonare tool upstream quando serve
+# - ca-certificates - Trust store TLS per download sicuri
+# - gnupg2, lsb-release - Gestione chiavi repo e info release
+# - xz-utils - Supporto XZ (alcuni installer lo usano)
+# - httpie - Client HTTP per diagnostica
+# - wordlists - Wordlist comuni (SecOps)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
@@ -130,10 +130,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Phase 2: Language Runtimes (runtime only; no compilers/dev headers here)
 # ==============================================================================
 # Install runtime usati dai tool (Go/Rust sono nei builder stage dedicati)
-# - Node.js + npm: richiesti da alcuni tool OSINT/web
-# - Java (JDK): richiesto da alcuni tool di analisi binaria
-# - Ruby: richiesto da WPScan e gem ausiliarie
-# - pipx: installer isolato per CLI Python (Checkov, Prowler, ecc.)
+# - Node.js + npm - richiesti da alcuni tool OSINT/web
+# - Java (JDK) - richiesto da alcuni tool di analisi binaria
+# - Ruby - richiesto da WPScan e gem ausiliarie
+# - pipx - installer isolato per CLI Python (Checkov, Prowler, ecc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       nodejs \
       npm \
@@ -162,7 +162,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 
-# Build deps per compilare wheel native (es. msgpack, netifaces) — rimossi nel cleanup finale
+# Build deps per compilare wheel native (es. msgpack, netifaces) - rimossi nel cleanup finale
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       python3-dev
@@ -182,17 +182,17 @@ RUN set -eux; \
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
 # Install cloud & container security CLIs (order matches pipx install below)
-# - ansible: Automation engine for configuration and orchestration
+# - ansible - Automation engine for configuration and orchestration
 RUN apt-get install -y --no-install-recommends \
         ansible
 
 # Install Python CLIs via pipx (official, isolated)
-# - Checkov: IaC security scanning for Terraform/CloudFormation/Kubernetes
-# - prowler: AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
-# - ScoutSuite: Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
-# - kube-hunter: Kubernetes penetration testing (active/passive modes)
-# - shodan: Official Shodan CLI (Python)
-# - censys: Official Censys CLI (Python)
+# - Checkov - IaC security scanning for Terraform/CloudFormation/Kubernetes
+# - prowler - AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
+# - ScoutSuite - Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
+# - kube-hunter - Kubernetes penetration testing (active/passive modes)
+# - shodan - Official Shodan CLI (Python)
+# - censys - Official Censys CLI (Python)
 RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
     pipx install --python /usr/local/bin/python3.12 --pip-args="--no-cache-dir --prefer-binary" prowler     && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  && \
@@ -461,7 +461,7 @@ RUN install -d -m 0755 /usr/share/keyrings && \
     mkdir -p /tmp/falco && cd /tmp/falco && \
     apt-get download falco && \
     dpkg-deb -x ./falco_*.deb / && \
-    cd / && rm -rf /tmp/falco /var/lib/apt/lists/*
+    cd / && rm -rf /tmp/falco
 
 # Newman (Postman CLI)
 RUN npm install -g newman
