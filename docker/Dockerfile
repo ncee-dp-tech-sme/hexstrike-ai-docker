@@ -10,9 +10,47 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Stage A: Python 3.12 Base (supplier of /usr/local/) 
+# Stage A: Python 3.12 Base (for prowler) 
 # ------------------------------------------------------------------------------
-FROM python:3.12-slim AS python-base
+FROM python:3.12-slim AS python312-base
+
+# ------------------------------------------------------------------------------
+# Stage CM: CloudMapper builder (Python 3.10 + dedicated venv with pyjq)
+# ------------------------------------------------------------------------------
+FROM python:3.10-slim AS cloudmapper-builder
+
+ENV CM_VENV=/opt/venvs/cloudmapper
+WORKDIR /opt/hexstrike
+
+# Install build prerequisites and jq development libraries for pyjq
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential autoconf automake libtool pkg-config \
+      git curl ca-certificates \
+      libjq-dev libonig-dev bison flex \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a dedicated virtual environment for CloudMapper
+RUN python -m venv "$CM_VENV" \
+ && "$CM_VENV/bin/pip" install --no-cache-dir -U pip setuptools wheel
+
+# Fetch CloudMapper directly from upstream to avoid context COPY issues
+RUN git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper \
+ && rm -rf /opt/hexstrike/tools/cloudmapper/.git
+
+# Normalize requirement pins and install into the dedicated venv
+RUN set -eux; \
+  REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
+  # Align matplotlib/numpy to versions compatible with Python 3.10
+  sed -i \
+    -e 's/^matplotlib==3\.4\.3$/matplotlib==3.7.5/' \
+    -e 's/^numpy==1\.22\.0$/numpy>=1.23/' \
+    "$REQ"; \
+  # Drop typed-ast (not supported on Python ≥ 3.10)
+  sed -i '/^typed-ast==/d' "$REQ"; \
+  # Optionally bump pyjq to a newer compatible version if pinned
+  sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ" || true; \
+  # Install all dependencies in the CloudMapper venv
+  "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
 # ------------------------------------------------------------------------------
 # Stage B: Go Builder
@@ -99,7 +137,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
 
 # Bring CPython 3.12 from Stage A (needed by prowler)
-COPY --from=python-base /usr/local/ /usr/local/
+COPY --from=python312-base /usr/local/ /usr/local/
 RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
 
@@ -169,14 +207,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
-
-# Slim down Python virtualenv to reduce layer size
-RUN set -eux; \
-    site="$VIRTUAL_ENV/lib/python3.13/site-packages"; \
-    find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
-    find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
-    find "$site" -name "*.pyc" -delete; \
-    command -v strip >/dev/null 2>&1 && find "$site" -type f -name "*.so" -exec strip -s {} + || true
 
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
@@ -475,12 +505,21 @@ RUN apt-get install -y --no-install-recommends \
 
 # ==============================================================================
 # Phase 15: Security Tool Repositories & Wrappers
+#   - CloudMapper code and venv are copied from the dedicated builder stage
+#   - Pacu via pipx on CPython 3.12 to avoid Python 3.13 C-API build issues
+#   - Keep other tools cloned from upstream (jwt_tool, libc-database, peda, stegsolve)
 # ==============================================================================
+
+# Bring CloudMapper code and its dedicated venv from the builder stage
+COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
+COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
+
+# Install system deps for Pacu (cffi may require libffi) and jq CLI; then install Pacu via pipx on Python 3.12
+RUN apt-get update && apt-get install -y --no-install-recommends jq libffi-dev \
+ && pipx install --python /usr/local/bin/python3.12 git+https://github.com/RhinoSecurityLabs/pacu.git
+
+# Clone remaining tool repositories
 RUN mkdir -p /opt/hexstrike/tools && \
-    git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper && \
-    rm -rf /opt/hexstrike/tools/cloudmapper/.git && \
-    git clone --depth 1 https://github.com/RhinoSecurityLabs/pacu.git /opt/hexstrike/tools/pacu && \
-    rm -rf /opt/hexstrike/tools/pacu/.git && \
     git clone --depth 1 https://github.com/ticarpi/jwt_tool.git /opt/hexstrike/tools/jwt_tool && \
     rm -rf /opt/hexstrike/tools/jwt_tool/.git && \
     git clone --depth 1 https://github.com/niklasb/libc-database.git /opt/hexstrike/tools/libc-database && \
@@ -493,25 +532,11 @@ RUN mkdir -p /opt/hexstrike/tools && \
     ln -s /opt/hexstrike/tools/libc-database /opt/libc-database && \
     ln -s /opt/hexstrike/tools/jwt_tool /opt/jwt_tool
 
-# Python requirements for cloned tools
-# NOTE: CloudMapper pins matplotlib==3.4.3 that conflicts with core matplotlib>=3.5
-RUN /usr/local/bin/python3.12 -m pip install --no-cache-dir -r /opt/hexstrike/tools/cloudmapper/requirements.txt && \
-    pip install --no-cache-dir -r /opt/hexstrike/tools/pacu/requirements.txt && \
-    pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
+RUN pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
 
-# Slim down again after tool deps
-RUN set -eux; \
-    site="$VIRTUAL_ENV/lib/python3.13/site-packages"; \
-    find "$site" -type d -name "__pycache__" -prune -exec rm -rf {} +; \
-    find "$site" -type d \( -name "tests" -o -name "test" -o -name "testing" \) -prune -exec rm -rf {} +; \
-    find "$site" -name "*.pyc" -delete; \
-    command -v strip >/dev/null 2>&1 && find "$site" -type f -name "*.so" -exec strip -s {} + || true
-
-# Create convenience entrypoints expected by MCP routes/health checks
-RUN printf '#!/bin/bash\n/usr/local/bin/python3.12 /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
+# Convenience entrypoints expected by MCP routes/health checks
+RUN printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
     chmod +x /usr/local/bin/cloudmapper && \
-    printf '#!/bin/bash\npython3 /opt/hexstrike/tools/pacu/pacu.py "$@"\n' > /usr/local/bin/pacu && \
-    chmod +x /usr/local/bin/pacu && \
     mkdir -p /opt/burpsuite && \
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
     ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
@@ -519,7 +544,7 @@ RUN printf '#!/bin/bash\n/usr/local/bin/python3.12 /opt/hexstrike/tools/cloudmap
     chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
     chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print(\"Usage: api-schema-analyzer <schema-file>\")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, \"r\", encoding=\"utf-8\") as f:\n    data = json.load(f)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
     chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
@@ -536,19 +561,17 @@ RUN mkdir -p /opt/hexstrike/tools && \
     printf '#!/bin/bash\nset -e\ncd /opt/hexstrike/tools/docker-bench-security\nexec ./docker-bench-security.sh "$@"\n' > /usr/local/bin/docker-bench-security && \
     chmod +x /usr/local/bin/docker-bench-security
 
-# - clairctl: Container vulnerability assessment CLI
+# - clairctl: Container vulnerability assessment CLI (only amd64/arm64)
 RUN set -eux; \
-    arch="$(dpkg --print-architecture)"; case "$arch" in \
-      amd64) asset_pat="linux_amd64";; \
-      arm64) asset_pat="linux_arm64";; \
-      *) echo "unsupported arch: $arch"; exit 1;; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-amd64";; \
+      arm64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-arm64";; \
+      *) echo "unsupported arch for clairctl: $arch"; exit 1;; \
     esac; \
-    curl -fsSL "https://api.github.com/repos/quay/clair/releases/latest" \
-      | awk -v p="$asset_pat" -F'"' '/browser_download_url/ && $0 ~ p".tar.gz" {print $4; exit}' \
-      | xargs -r curl -fsSL -o /tmp/clairctl.tgz; \
-    tar -C /tmp -xzf /tmp/clairctl.tgz clairctl; \
-    install /tmp/clairctl /usr/local/bin/clairctl; \
-    rm -f /tmp/clairctl /tmp/clairctl.tgz
+    curl -fsSL "$url" -o /usr/local/bin/clairctl; \
+    chmod 0755 /usr/local/bin/clairctl; \
+    /usr/local/bin/clairctl --version || true
 
 # ==============================================================================
 # Phase 17: Image Cleanup
