@@ -144,15 +144,6 @@ cd hexstrike-ai
 # 3. Run MCP server
 ./scripts/run-docker-mcp-server.sh
 
-# Use Podman (optional)
-CONTAINER_RUNTIME=podman ./scripts/run-docker-mcp-server.sh
-
-# Both scripts require Docker/Podman with permissions to add NET_RAW/NET_ADMIN capabilities.
-# Run via sudo or ensure your user has the appropriate privileges.
-
-# Alternative: run in detached mode
-./scripts/run-docker-mcp-server-detached.sh
-
 # Alternative: using Docker Compose
 docker-compose -f docker/docker-compose.yml up -d
 ```

@@ -13,7 +13,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    
+
     # Container name for easy reference
     container_name: hexstrike-mcp-server
     
@@ -26,32 +26,25 @@ services:
     cap_add:
       - NET_RAW
       - NET_ADMIN
-    
+
     # Port mapping: Host:Container
     # Exposes MCP server on host port 8888
     ports:
       - "8888:8888"
-    
+
     # Environment variables (optional)
     environment:
       - PYTHONUNBUFFERED=1
-      - DEBUG_MODE=false
-    
-    # Volume mounts for persistent data and scan results
-    # Uncomment and customize as needed
+      # - DEBUG_MODE=false
+      # - MCP_PORT=8888
+
+    # Volumes: persist only logs
     volumes:
-      # Mount for scan results output
-      - ./scan-results:/opt/hexstrike/results
-      
-      # Mount for logs
       - ./logs:/opt/hexstrike/logs
-      
-      # Mount for custom wordlists (optional)
-      # - ./wordlists:/opt/hexstrike/wordlists:ro
-    
-    # Restart policy
+
+    # Restart policy suitable for production
     restart: unless-stopped
-    
+
     # Health check configuration
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
@@ -59,25 +52,24 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-    
+
     # Network configuration (optional)
-    # Use host network for full network access
+    # Use host network for full network access - enable only if required.
     # network_mode: "host"
-    
-    # Security options (optional, more restrictive)
+
+    # Security options (optional - uncomment for stricter hardening if compatible)
     # security_opt:
     #   - no-new-privileges:true
-    
-    # User configuration (run as non-root if possible)
-    # Note: Many security tools require root privileges
-    # user: "1000:1000"
-
-# Create named volumes for persistent data
-volumes:
-  scan-results:
-    driver: local
-  logs:
-    driver: local
+    # read_only: true            # may break tools needing write access to /opt/hexstrike
+    # tmpfs:
+    #   - /tmp:rw,exec,size=256m # scratch space if read_only=true
+    # cap_drop:
+    #   - ALL                    # start from no caps, then add back the needed ones
+    # user: "1000:1000"          # run as non-root if your tools allow it
+    # ulimits:
+    #   nofile: 65536
+    # sysctls:
+    #   net.ipv4.ping_group_range: "0 2147483647"
 
 # Network configuration (optional)
 # networks:
