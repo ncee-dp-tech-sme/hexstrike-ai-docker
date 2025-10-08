@@ -1,10 +1,6 @@
 # ==============================================================================
 # HexStrike AI MCP Server v6.0 - Docker Image (Multi-stage Build)
 # ==============================================================================
-# Stage A: Python 3.12 base to provide a clean CPython into Kali
-# Stage B: Go builder for Go-based CLIs (produces static-ish binaries)
-# Stage C: Rust builder for Rust-based CLIs (produces binaries)
-# Stage D: Final runtime on Kali rolling with categorized phases (README-aligned)
 # Repository: https://github.com/0x4m4/hexstrike-ai
 # License: MIT
 # ==============================================================================
@@ -15,7 +11,7 @@
 FROM python:3.12-slim AS python312-base
 
 # ------------------------------------------------------------------------------
-# Stage CM: CloudMapper builder (Python 3.10 + dedicated venv with pyjq)
+# Stage B: CloudMapper builder (Python 3.10 + dedicated venv with pyjq)
 # ------------------------------------------------------------------------------
 FROM python:3.10-slim AS cloudmapper-builder
 
@@ -53,7 +49,7 @@ RUN set -eux; \
   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
 # ------------------------------------------------------------------------------
-# Stage B: Go Builder
+# Stage C: Go Builder
 #   Builds Go CLIs once and exports binaries under /out for the final image.
 #   We use ephemeral GOMODCACHE/GOCACHE and wipe them in the same RUN to avoid
 #   persisting large module/testdata blobs in the layer.
@@ -80,6 +76,7 @@ RUN set -eux; \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
     go install -v github.com/hahwul/dalfox/v2@latest && \
     go install -v github.com/jaeles-project/jaeles@latest && \
+    go install -v github.com/aquasecurity/kube-bench/v2/cmd/kube-bench@latest && \
     go install -v github.com/lc/gau/v2/cmd/gau@latest && \
     go install -v github.com/tomnomnom/waybackurls@latest && \
     go install -v github.com/tomnomnom/assetfinder@latest && \
@@ -99,7 +96,7 @@ RUN set -eux; \
     rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod || true
 
 # ------------------------------------------------------------------------------
-# Stage C: Rust Builder
+# Stage D: Rust Builder
 #   Compiles Rust CLIs and exports binaries under /out for the final image.
 # ------------------------------------------------------------------------------
 FROM rust:latest AS rust-builder
@@ -129,7 +126,35 @@ RUN set -eux; \
     rm -rf /tmp/x8 ~/.cargo/registry ~/.cargo/git
 
 # ------------------------------------------------------------------------------
-# Stage D: Final - Kali Linux + Python 3.12 + categorized tooling
+# Stage E: Node.js 18 Builder for insomnia-inso (isolated runtime)
+# ------------------------------------------------------------------------------
+FROM node:18-bullseye AS insomnia-node18-builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    NPM_CONFIG_PREFIX=/opt/insomnia
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        libcurl4-openssl-dev \
+        pkg-config \
+        git \
+    && python3 -m pip install --no-cache-dir gyp-next
+
+RUN npm install -g --build-from-source insomnia-inso \
+    && npm cache clean --force
+
+RUN mkdir -p /opt/insomnia-artifacts/node18 && \
+    cp -a /usr/local/bin /opt/insomnia-artifacts/node18/bin && \
+    cp -a /usr/local/lib /opt/insomnia-artifacts/node18/lib && \
+    cp -a /usr/local/include /opt/insomnia-artifacts/node18/include && \
+    cp -a /usr/local/share /opt/insomnia-artifacts/node18/share && \
+    cp -a /opt/insomnia /opt/insomnia-artifacts/insomnia
+
+# ------------------------------------------------------------------------------
+# Stage F: Final - Kali Linux + Python 3.12 + categorized tooling
 # ------------------------------------------------------------------------------
 FROM docker.io/kalilinux/kali-rolling:latest
 
@@ -162,10 +187,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         xz-utils \
         ca-certificates \
         wordlists \
-        httpie
+        httpie \
+        jq
 
 # ==============================================================================
-# Phase 2: Language Runtimes (runtime only; no compilers/dev headers here)
+# Phase 2: Language Runtimes aand Build Tools
 # ==============================================================================
 # Runtimes used by the tooling (Go/Rust come from their dedicated builder stages)
 # - Node.js + npm - Required by some OSINT and web tools
@@ -173,13 +199,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # - Ruby - Required by WPScan and auxiliary gems
 # - pipx - Isolated installer for Python CLIs (Checkov, Prowler, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      nodejs \
-      npm \
-      default-jdk \
-      ruby-full \
-      pipx \
-      python3-venv
+        nodejs \
+        npm \
+        default-jdk \
+        ruby-full \
+        pipx \
+        python3-venv \
+        python3-pip \
+        build-essential \
+        python3-dev \
+        libcurl4-openssl-dev \
+        pkg-config \
+        g++
+
 ENV PIPX_DEFAULT_PYTHON=/usr/bin/python3
+ENV npm_config_python=/usr/bin/python3
+ENV PYTHON=/usr/bin/python3
 
 # ==============================================================================
 # Phase 3: Python Virtual Environment
@@ -199,11 +234,6 @@ ENV PATH="/root/.local/bin:${PATH}"
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
-
-# Build deps to compile native wheels (e.g., msgpack, netifaces) - removed in final cleanup
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \
-      python3-dev
 
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
@@ -338,6 +368,7 @@ RUN apt-get install -y --no-install-recommends \
 # - assetfinder: Subdomain/asset enumerator
 # - anew: Append-only deduplication helper
 # - qsreplace: Query parameter mutation utility
+# - kube-bench: CIS Kubernetes benchmark auditing
 COPY --from=go-builder /out/* /usr/local/bin/
 
 # x8 - Hidden parameter discovery (from Rust builder)
@@ -404,7 +435,8 @@ RUN apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir \
         ropgadget \
         volatility3 \
-        uro
+        uro \
+        pwntools
 
 # pwninit - CTF binary setup automation
 COPY --from=rust-builder /out/pwninit /usr/local/bin/pwninit
@@ -443,20 +475,28 @@ RUN apt-get install -y --no-install-recommends \
         kismet \
         sherlock \
         recon-ng \
-        spiderfoot
+        spiderfoot \
+        maltego
 
-# Install OSINT companion CLIs distributed via npm
+# Install OSINT companion CLIs via npm (Node.js LTS runtime)
 # - social-analyzer: Social media analysis toolkit
 # - pwned: Have I Been Pwned CLI
+# - graphql-inspector: GraphQL diffing/audit utility
 # - jwt-cracker: JWT cracking utility
-# - graphql-playground-html: GraphQL Playground static server
-# - graphql-voyager: GraphQL schema visualization
+# - graphql-playground-html / graphql-voyager: GraphQL tooling
+# - newman: Postman CLI runner
 RUN npm install -g \
         social-analyzer \
         pwned \
+        graphql-inspector \
         jwt-cracker \
         graphql-playground-html \
-        graphql-voyager
+        graphql-voyager \
+        newman
+
+# Bundle isolated Node.js 18 runtime for insomnia-inso only
+COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia-node18
+COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/insomnia /opt/insomnia
 
 # ==============================================================================
 # Phase 11: Wireless & Packet Analysis
@@ -493,9 +533,6 @@ RUN install -d -m 0755 /usr/share/keyrings && \
     dpkg-deb -x ./falco_*.deb / && \
     cd / && rm -rf /tmp/falco
 
-# Newman (Postman CLI)
-RUN npm install -g newman
-
 # ==============================================================================
 # Phase 14: Browser Agent Requirements
 # ==============================================================================
@@ -515,7 +552,7 @@ COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
 COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
 
 # Install system deps for Pacu (cffi may require libffi) and jq CLI; then install Pacu via pipx on Python 3.12
-RUN apt-get update && apt-get install -y --no-install-recommends jq libffi-dev \
+RUN apt-get install -y --no-install-recommends libffi-dev \
  && pipx install --python /usr/local/bin/python3.12 git+https://github.com/RhinoSecurityLabs/pacu.git
 
 # Clone remaining tool repositories
@@ -533,19 +570,6 @@ RUN mkdir -p /opt/hexstrike/tools && \
     ln -s /opt/hexstrike/tools/jwt_tool /opt/jwt_tool
 
 RUN pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
-
-# Convenience entrypoints expected by MCP routes/health checks
-RUN printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && \
-    chmod +x /usr/local/bin/cloudmapper && \
-    mkdir -p /opt/burpsuite && \
-    if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
-    ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
-    printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && \
-    chmod +x /usr/local/bin/graphql-playground && \
-    printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && \
-    chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json,sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as f:\n    data = json.load(f)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && \
-    chmod +x /usr/local/bin/api-schema-analyzer
 
 # ==============================================================================
 # Phase 16: Cloud & Container Security Binaries
@@ -574,13 +598,47 @@ RUN set -eux; \
     /usr/local/bin/clairctl --version || true
 
 # ==============================================================================
-# Phase 17: Image Cleanup
+# Phase 17: MCP Entry Points & Wrappers
 # ==============================================================================
-RUN apt-get purge -y --auto-remove build-essential python3-dev && \
+RUN set -eux; \
+    printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
+    mkdir -p /opt/burpsuite && \
+    if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
+    ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
+    printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
+    printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
+    printf '#!/usr/bin/env python3\nimport json\nimport sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\n\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as handle:\n    data = json.load(handle)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ", ".join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
+    ln -sf /usr/bin/bulk_extractor /usr/local/bin/bulk-extractor && \
+    ln -sf /root/.local/bin/censys /usr/local/bin/censys-cli || true && \
+    ln -sf /usr/local/bin/clairctl /usr/local/bin/clair && \
+    printf '#!/bin/bash\nexec searchsploit "$@"\n' > /usr/local/bin/exploit-db && chmod +x /usr/local/bin/exploit-db && \
+    printf '#!/bin/bash\nexec /usr/lib/hashcat-utils/cap2hccapx "$@"\n' > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils && \
+    printf '#!/bin/bash\nexec pwned "$@"\n' > /usr/local/bin/have-i-been-pwned && chmod +x /usr/local/bin/have-i-been-pwned && \
+    printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
+    printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
+    printf '#!/bin/bash\nexec /opt/hexstrike/tools/libc-database/find "$@"\n' > /usr/local/bin/libc-database && chmod +x /usr/local/bin/libc-database && \
+    ln -sf /usr/bin/msfconsole /usr/local/bin/metasploit && \
+    ln -sf /usr/local/bin/one_gadget /usr/local/bin/one-gadget || true && \
+    ln -sf /opt/hexstrike/venv/bin/ROPgadget /usr/local/bin/ropgadget || true && \
+    ln -sf /opt/hexstrike/venv/bin/pwn /usr/local/bin/pwntools || true && \
+    ln -sf /root/.local/bin/scout /usr/local/bin/scout-suite || true && \
+    ln -sf /root/.local/bin/ScoutSuite /usr/local/bin/scout-suite || true && \
+    ln -sf /root/.local/bin/shodan /usr/local/bin/shodan-cli || true && \
+    printf '#!/bin/bash\nexec tsk_loaddb "$@"\n' > /usr/local/bin/sleuthkit && chmod +x /usr/local/bin/sleuthkit && \
+    printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n' > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve && \
+    ln -sf /opt/hexstrike/venv/bin/volatility3 /usr/local/bin/volatility3 || true && \
+    ln -sf /usr/bin/volatility3 /usr/local/bin/volatility3 || true && \
+    ln -sf /usr/bin/volatility /usr/local/bin/volatility || true && \
+    ln -sf /usr/local/bin/graphql-inspector /usr/local/bin/graphql-scanner || true
+
+# ==============================================================================
+# Phase 18: Image Cleanup
+# ==============================================================================
+RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
-# Phase 18: Runtime Configuration
+# Phase 19: Runtime Configuration
 # ==============================================================================
 
 # Expose MCP server port
@@ -590,8 +648,5 @@ EXPOSE 8888
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8888/health || exit 1
 
-# ==============================================================================
-# Phase 19: Startup
-# ==============================================================================
 # Start HexStrike MCP server using virtual environment Python
 CMD ["python3", "hexstrike_server.py"]
