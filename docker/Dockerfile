@@ -583,11 +583,6 @@ RUN apt-get purge -y --auto-remove build-essential python3-dev && \
 # Phase 18: Runtime Configuration
 # ==============================================================================
 
-# Ensure logs and results directories exist with symlinked log file
-VOLUME /opt/hexstrike/logs
-RUN mkdir -p /opt/hexstrike/logs /opt/hexstrike/results \
- && ln -sfn /opt/hexstrike/logs/hexstrike.log /opt/hexstrike/hexstrike.log
-
 # Expose MCP server port
 EXPOSE 8888
 

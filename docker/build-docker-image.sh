@@ -8,7 +8,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 cd "$SCRIPT_DIR/.."
 
 IMAGE_TAG="hexstrike-ai:v6.0"
-LOG_FILE="${BUILD_LOG:-build.log}"
+LOG_FILE="${BUILD_LOG:-logs/build.log}"
 
 echo "[+] Building image with docker | log: ${LOG_FILE}" >&2
 

@@ -40,7 +40,7 @@ services:
 
     # Volumes: persist only logs
     volumes:
-      - ./logs:/opt/hexstrike/logs
+      - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
 
     # Restart policy suitable for production
     restart: unless-stopped
