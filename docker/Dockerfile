@@ -38,8 +38,8 @@ RUN set -eux; \
   REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
   # Align matplotlib/numpy to versions compatible with Python 3.10
   sed -i \
-    -e 's/^matplotlib==3\.4\.3$/matplotlib==3.7.5/' \
-    -e 's/^numpy==1\.22\.0$/numpy>=1.23/' \
+    -e 's/^matplotlib==3\.4\.3$/matplotlib==3\.7\.5/' \
+    -e 's/^numpy==1\.22\.0$/numpy>=1\.23/' \
     "$REQ"; \
   # Drop typed-ast (not supported on Python ≥ 3.10)
   sed -i '/^typed-ast==/d' "$REQ"; \
@@ -47,77 +47,6 @@ RUN set -eux; \
   sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ"; \
   # Install all dependencies in the CloudMapper venv
   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
-
-# ------------------------------------------------------------------------------
-# Stage C: Go Builder
-#   Builds Go CLIs once and exports binaries under /out for the final image.
-#   We use ephemeral GOMODCACHE/GOCACHE and wipe them in the same RUN to avoid
-#   persisting large module/testdata blobs in the layer.
-# ------------------------------------------------------------------------------
-FROM golang:latest AS go-builder
-ENV GO111MODULE=on \
-    GOBIN=/out \
-    GOPROXY=https://proxy.golang.org,direct \
-    GOSUMDB=sum.golang.org \
-    GOFLAGS=-trimpath
-
-# Minimal toolchain for CGO builds (only for katana)
-RUN set -eux; \
-    mkdir -p "${GOBIN}" && \
-    apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Go tools that do not require CGO (single layer; then purge caches)
-ENV CGO_ENABLED=0 \
-    GOMODCACHE=/tmp/gomod \
-    GOCACHE=/tmp/gocache
-RUN set -eux; \
-    go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
-    go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
-    go install -v github.com/hahwul/dalfox/v2@latest && \
-    go install -v github.com/jaeles-project/jaeles@latest && \
-    # Clean Go build/module caches to keep the layer tiny
-    go clean -cache -modcache; \
-    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod
-
-# katana requires CGO (go-tree-sitter). Build in a separate RUN and purge caches.
-ENV CGO_ENABLED=1 \
-    GOMODCACHE=/tmp/gomod \
-    GOCACHE=/tmp/gocache
-RUN set -eux; \
-    go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
-    go clean -cache -modcache; \
-    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod
-
-# ------------------------------------------------------------------------------
-# Stage D: Rust Builder
-#   Compiles Rust CLIs and exports binaries under /out for the final image.
-# ------------------------------------------------------------------------------
-FROM rust:latest AS rust-builder
-
-# Ensure toolchain is present and create export directory
-RUN set -eux; \
-    rustc --version; cargo --version; \
-    mkdir -p /out
-
-# rustscan - Port scanner (Rust)
-RUN set -eux; \
-    cargo install --root /tmp --bins rustscan; \
-    install -m 0755 /tmp/bin/rustscan /out/rustscan; \
-    rm -rf /tmp/* ~/.cargo/registry ~/.cargo/git
-
-# pwninit - CTF binary setup automation (Rust)
-RUN set -eux; \
-    cargo install --root /tmp --bins pwninit; \
-    install -m 0755 /tmp/bin/pwninit /out/pwninit; \
-    rm -rf /tmp/* ~/.cargo/registry ~/.cargo/git
-
-# x8 - Hidden parameter discovery (Rust)
-RUN set -eux; \
-    git clone --depth 1 https://github.com/Sh1Yo/x8.git /tmp/x8; \
-    cargo build --manifest-path /tmp/x8/Cargo.toml --release; \
-    install -m 0755 /tmp/x8/target/release/x8 /out/x8; \
-    rm -rf /tmp/x8 ~/.cargo/registry ~/.cargo/git
 
 # ------------------------------------------------------------------------------
 # Stage E: Node.js 18 Builder for insomnia-inso (isolated runtime)
@@ -189,7 +118,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 2: Language Runtimes and Build Tools
 # ==============================================================================
-# Runtimes used by the tooling (Go/Rust come from their dedicated builder stages)
+# Runtimes used by the tooling (Go/Rust come da release ufficiali)
 # - Node.js + npm - Required by some OSINT and web tools
 # - Java (JDK) - Required by certain binary analysis tools
 # - Ruby - Required by WPScan and auxiliary gems
@@ -258,9 +187,9 @@ RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
 
 # Terrascan - Policy-as-code scanner
 RUN set -eux; \
-    curl -s https://api.github.com/repos/tenable/terrascan/releases/latest \
-     | awk -F'"' '/browser_download_url/ && /Linux_x86_64\.tar\.gz/ {print $4; exit}' \
-     | xargs -r curl -fsSL -o /tmp/terrascan.tgz; \
+    url="$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest \
+      | awk -F'"' '/browser_download_url/ && /Linux_[xX]86_64\.tar\.gz/ {print $4; exit}')"; \
+    curl -fsSL "$url" -o /tmp/terrascan.tgz; \
     tar -C /tmp -xzf /tmp/terrascan.tgz terrascan; \
     install /tmp/terrascan /usr/local/bin/terrascan; \
     rm -f /tmp/terrascan /tmp/terrascan.tgz
@@ -308,8 +237,18 @@ RUN apt-get install -y --no-install-recommends \
         samba-common-bin \
         smbclient
 
-# rustscan - Port scanner (from Rust builder)
-COPY --from=rust-builder /out/rustscan /usr/local/bin/rustscan
+# rustscan - Port scanner (official .deb packaged as ZIP in latest release)
+RUN set -eux; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
+         | jq -r '.assets[]?.browser_download_url | select(endswith("rustscan.deb.zip"))' | head -n1)"; \
+  [ -n "$url" ] || { echo "rustscan.deb.zip asset not found in latest release"; exit 1; }; \
+  curl -fsSL -o rustscan.deb.zip "$url"; \
+  apt-get update && apt-get install -y --no-install-recommends unzip; \
+  unzip -q rustscan.deb.zip; \
+  deb="$(printf '%s\n' rustscan*.deb | head -n1)"; \
+  dpkg -i "$deb" || apt-get -f install -y; \
+  cd /; rm -rf "$tmp"
 
 # ==============================================================================
 # Phase 7: Web Application Security Tools
@@ -353,21 +292,96 @@ RUN apt-get install -y --no-install-recommends \
         burpsuite \
         zaproxy
 
-# Install Go-based reconnaissance & container utilities (ordered as below)
-# - katana: Next-generation crawling and spidering (JavaScript-aware)
-# - httpx: Fast HTTP probing and technology detection
-# - nuclei: Template-driven vulnerability scanning (4000+ templates)
-# - dalfox: Advanced DOM-aware XSS scanner
+# Tools:
+# - katana: Next-generation crawler & spider (JavaScript-aware)
+# - httpx: Fast HTTP probing with tech detection
+# - nuclei: Template-driven vulnerability scanner
+# - dalfox: DOM-aware XSS scanner
 # - jaeles: Signature-based web vulnerability scanner
-# - gau: Aggregate historical URLs (Wayback/Common Crawl)
-# - waybackurls: Wayback Machine URL discovery
-# - assetfinder: Subdomain/asset enumerator
-# - anew: Append-only deduplication helper
-# - qsreplace: Query parameter mutation utility
-COPY --from=go-builder /out/* /usr/local/bin/
+# Prereqs already present earlier: curl, jq, unzip, tar, ca-certificates
 
-# x8 - Hidden parameter discovery (from Rust builder)
-COPY --from=rust-builder /out/x8 /usr/local/bin/x8
+# --------------------------------------------------------------------
+# Tools
+# - katana: Next-generation crawler & spider (JavaScript-aware)
+# - httpx: Fast HTTP probing with tech detection
+# - nuclei: Template-driven vulnerability scanner
+# - dalfox: DOM-aware XSS scanner
+# - jaeles: Signature-based web vulnerability scanner
+# - x8: Hidden parameter discovery
+# --------------------------------------------------------------------
+
+# - katana: Next-generation crawler & spider (JavaScript-aware)
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/katana/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^katana_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'katana: linux_amd64 zip asset not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/projectdiscovery/katana/releases/download/${tag}/${asset}"; \
+  unzip -p "$asset" "*/katana" > katana 2>/dev/null || unzip -p "$asset" "katana" > katana; \
+  chmod 0755 katana; install -m 0755 katana /usr/local/bin/katana; \
+  cd /; rm -rf "$tmp"
+
+# - httpx: Fast HTTP probing with tech detection
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/httpx/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^httpx_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'httpx: linux_amd64 zip asset not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/projectdiscovery/httpx/releases/download/${tag}/${asset}"; \
+  unzip -p "$asset" "*/httpx" > httpx 2>/dev/null || unzip -p "$asset" "httpx" > httpx; \
+  chmod 0755 httpx; install -m 0755 httpx /usr/local/bin/httpx; \
+  cd /; rm -rf "$tmp"
+
+# - nuclei: Template-driven vulnerability scanner
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/nuclei/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^nuclei_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'nuclei: linux_amd64 zip asset not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/projectdiscovery/nuclei/releases/download/${tag}/${asset}"; \
+  unzip -p "$asset" "*/nuclei" > nuclei 2>/dev/null || unzip -p "$asset" "nuclei" > nuclei; \
+  chmod 0755 nuclei; install -m 0755 nuclei /usr/local/bin/nuclei; \
+  cd /; rm -rf "$tmp"
+
+# dalfox — install linux amd64 from the latest release (strict, no fallbacks)
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/hahwul/dalfox/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  [ -n "$tag" ]; \
+  asset="dalfox-linux-amd64.tar.gz"; \
+  curl -fsSL -o "$asset" "https://github.com/hahwul/dalfox/releases/download/${tag}/${asset}"; \
+  tar -xOzf "$asset" dalfox-linux-amd64 > dalfox; \
+  install -m 0755 dalfox /usr/local/bin/dalfox; \
+  cd /; rm -rf "$tmp"
+
+# - jaeles: Signature-based web vulnerability scanner
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/jaeles-project/jaeles/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^jaeles-.*-linux\\.zip$"))' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'jaeles: linux zip asset not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/jaeles-project/jaeles/releases/download/${tag}/${asset}"; \
+  unzip -p "$asset" "*/jaeles" > jaeles 2>/dev/null || unzip -p "$asset" "jaeles" > jaeles; \
+  chmod 0755 jaeles; install -m 0755 jaeles /usr/local/bin/jaeles; \
+  cd /; rm -rf "$tmp"
+
+# - x8: Hidden parameter discovery
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/Sh1Yo/x8/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(. == "x86_64-linux-x8.gz")' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'x8: x86_64-linux-x8.gz not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/Sh1Yo/x8/releases/download/${tag}/${asset}"; \
+  gzip -dc "$asset" > x8; \
+  chmod 0755 x8; install -m 0755 x8 /usr/local/bin/x8; \
+  cd /; rm -rf "$tmp"
+
 
 # ==============================================================================
 # Phase 8: Authentication & Password Security
@@ -433,8 +447,15 @@ RUN pip install --no-cache-dir \
         uro \
         pwntools
 
-# pwninit - CTF binary setup automation
-COPY --from=rust-builder /out/pwninit /usr/local/bin/pwninit
+# pwninit - CTF binary setup automation (official release binary)
+RUN set -eux; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  json="$(curl -fsSL https://api.github.com/repos/io12/pwninit/releases/latest)"; \
+  url="$(printf '%s\n' "$json" | jq -r '.assets[]?.browser_download_url' | grep -E '/pwninit($|[^/]*$)' | head -n1)"; \
+  [ -n "$url" ] || { echo "No binary asset for pwninit latest"; exit 1; }; \
+  curl -fsSL -o pwninit "$url"; \
+  chmod +x pwninit; install -m 0755 pwninit /usr/local/bin/pwninit; \
+  cd /; rm -rf "$tmp"
 
 # zsteg - PNG/BMP steganography detection
 # one_gadget - ROP gadget finder for glibc
@@ -489,54 +510,44 @@ RUN npm install -g \
         graphql-voyager \
         newman
 
-# Install GitHub releases for reconnaissance tools (prefer stable; fallback to newest prerelease)
+# GitHub releases for tomnomnom tools (official binaries; strict latest; no prerelease; no HTML)
 RUN set -eux; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
-  for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls tomnomnom/assetfinder; do \
+  for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls; do \
     name="${repo##*/}"; \
-    api="https://api.github.com/repos/${repo}"; \
-    releases="$(curl -fsSL "${api}/releases")"; \
-    # 1) Try latest stable (not draft, not prerelease)
-    url="$(printf '%s' "$releases" \
-      | jq -r 'map(select(.draft==false and .prerelease==false)) \
-               | .[0].assets[]? \
-               | .browser_download_url \
-               | select(test("(linux|Linux).*(amd64|x86_64).*(\\.(tgz|tar\\.gz|zip)$|$)"))' \
-      | head -n1)"; \
-    # 2) Fallback to newest prerelease (not draft)
-    if [ -z "$url" ]; then \
-      url="$(printf '%s' "$releases" \
-        | jq -r 'map(select(.draft==false and .prerelease==true)) \
-                 | .[0].assets[]? \
-                 | .browser_download_url \
-                 | select(test("(linux|Linux).*(amd64|x86_64).*(\\.(tgz|tar\\.gz|zip)$|$)"))' \
-        | head -n1)"; \
-    fi; \
-    [ -n "$url" ] || { echo "No linux-amd64 asset found for $repo"; exit 1; }; \
-    file="${url##*/}"; \
-    curl -fsSL -o "$file" "$url"; \
+    json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")"; \
+    url="$(printf '%s' "$json" | jq -r '.assets[]?.browser_download_url' | grep -E -- '-linux-amd64($|.*\.(tgz|tar\.gz|zip)$)' | head -n1)"; \
+    [ -n "$url" ] || { echo "No linux-amd64 asset for ${repo} latest"; exit 1; }; \
+    file="${url##*/}"; curl -fsSL -o "$file" "$url"; \
     case "$file" in \
       *.tgz|*.tar.gz) tar -xzf "$file" ;; \
       *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
       *) : ;; \
     esac; \
-    bin_path="$(find . -type f -perm -111 -printf '%P\n' \
-      | grep -E '(^|/)'\"$name\"'($|[^a-zA-Z0-9._-])' | head -n1 || true)"; \
-    if [ -z "$bin_path" ] && [ -f "./$name" ]; then bin_path="./$name"; fi; \
-    if [ -z "$bin_path" ]; then bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; fi; \
-    [ -n "$bin_path" ] || { echo "No executable found for $repo"; exit 1; }; \
+    bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1 || true)"; \
+    [ -n "$bin_path" ] || bin_path="./$name"; \
+    [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; \
+    [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; }; \
     install -m 0755 "$bin_path" "/usr/local/bin/$name"; \
+    rm -rf ./*; \
   done; \
+  # assetfinder: /releases/latest may return 404 → use /releases (first item)
+  repo="tomnomnom/assetfinder"; name="assetfinder"; \
+  json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases")"; \
+  url="$(printf '%s' "$json" | jq -r '.[0].assets[]?.browser_download_url' | grep -E -- '-linux-amd64($|.*\.(tgz|tar\.gz|zip)$)' | head -n1)"; \
+  [ -n "$url" ] || { echo "No linux-amd64 asset for ${repo}"; exit 1; }; \
+  file="${url##*/}"; curl -fsSL -o "$file" "$url"; \
+  case "$file" in \
+    *.tgz|*.tar.gz) tar -xzf "$file" ;; \
+    *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
+    *) : ;; \
+  esac; \
+  bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1 || true)"; \
+  [ -n "$bin_path" ] || bin_path="./$name"; \
+  [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; \
+  [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; }; \
+  install -m 0755 "$bin_path" "/usr/local/bin/$name"; \
   cd /; rm -rf "$tmp"
-
-RUN set -eux; \
-    tmp=$(mktemp -d); cd "$tmp"; \
-    tag=$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest | jq -r '.tag_name'); \
-    file="gau_${tag#v}_linux_amd64.tar.gz"; \
-    curl -fsSL -o gau.tgz "https://github.com/lc/gau/releases/download/${tag}/${file}"; \
-    tar -xzf gau.tgz; \
-    install -m 0755 gau /usr/local/bin/gau; \
-    cd /; rm -rf "$tmp"
 
 # Bundle isolated Node.js 18 runtime for insomnia-inso only
 COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia-node18
@@ -545,7 +556,6 @@ COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/insomnia /opt/insomn
 # ==============================================================================
 # Phase 11: Wireless & Packet Analysis
 # ==============================================================================
-# Install packet capture / 802.11 tooling used by network automation endpoints
 # - wireshark: Network protocol analyzer
 # - tshark: Terminal-based Wireshark
 # - tcpdump: Packet capture utility
@@ -640,7 +650,7 @@ RUN set -eux; \
     chmod 0755 /usr/local/bin/clairctl; \
     /usr/local/bin/clairctl --version
 
-# kube-bench - CIS Kubernetes benchmark auditing
+# kube-bench - CIS Kubernetes benchmark auditing (official release archive)
 RUN set -eux; \
     tmp=$(mktemp -d); cd "$tmp"; \
     arch="$(dpkg --print-architecture)"; \
@@ -657,41 +667,40 @@ RUN set -eux; \
     cd /; rm -rf "$tmp"
 
 # ==============================================================================
-# Phase 17: MCP Entry Points & Wrappers
+# Phase 17: MCP Entry Points & Minimal Wrappers (only where required)
 # ==============================================================================
 RUN set -eux; \
+    # CloudMapper wrapper: ensure execution via its dedicated venv
     printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
-    mkdir -p /opt/burpsuite && \
-    if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
-    ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
-    ln -sf /usr/bin/http /usr/local/bin/httpie && \
-    printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
-    printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json\nimport sys\n\nif len(sys.argv) < 2:\n    print(\"Usage: api-schema-analyzer <schema-file>\")\n    sys.exit(1)\n\npath = sys.argv[1]\nwith open(path, \"r\", encoding=\"utf-8\") as handle:\n    data = json.load(handle)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
-    ln -sf /usr/bin/bulk_extractor /usr/local/bin/bulk-extractor && \
-    ln -sf /root/.local/bin/censys /usr/local/bin/censys-cli && \
-    ln -sf /usr/local/bin/clairctl /usr/local/bin/clair && \
-    printf '#!/bin/bash\nexec searchsploit "$@"\n' > /usr/local/bin/exploit-db && chmod +x /usr/local/bin/exploit-db && \
-    printf '#!/bin/bash\nexec pwned "$@"\n' > /usr/local/bin/have-i-been-pwned && chmod +x /usr/local/bin/have-i-been-pwned && \
+    # Insomnia CLI wrapper: run with isolated Node 18 runtime
     printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
-    printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
-    printf '#!/bin/bash\nexec /opt/hexstrike/tools/libc-database/find "$@"\n' > /usr/local/bin/libc-database && chmod +x /usr/local/bin/libc-database && \
-    ln -sf /usr/bin/msfconsole /usr/local/bin/metasploit && \
-    ln -sf /usr/local/bin/one_gadget /usr/local/bin/one-gadget && \
-    ln -sf /opt/hexstrike/venv/bin/ROPgadget /usr/local/bin/ropgadget && \
-    ln -sf /opt/hexstrike/venv/bin/pwn /usr/local/bin/pwntools && \
-    ln -sf /root/.local/bin/scout /usr/local/bin/scout-suite && \
-    ln -sf /root/.local/bin/shodan /usr/local/bin/shodan-cli && \
-    printf '#!/bin/bash\nexec tsk_loaddb "$@"\n' > /usr/local/bin/sleuthkit && chmod +x /usr/local/bin/sleuthkit && \
+    # API schema analyzer helper (custom)
+    printf '#!/usr/bin/env python3\nimport json,sys\nif len(sys.argv)<2:\n print("Usage: api-schema-analyzer <schema-file>"); sys.exit(1)\npath=sys.argv[1]\nwith open(path, "r", encoding="utf-8") as h:\n data=json.load(h)\npaths=data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n verbs=\", \".join(m.upper() for m in methods.keys())\n print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
+    # StegSolve wrapper: run jar with Java
     printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n' > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve && \
-    ln -sf /opt/hexstrike/venv/bin/vol /usr/local/bin/volatility3 && \
-    ln -sf /opt/hexstrike/venv/bin/vol /usr/local/bin/volatility && \
-    ln -sf /usr/local/bin/graphql-inspector /usr/local/bin/graphql-scanner
+    \
+    # --- Minimal compatibility aliases required by hexstrike_server.py ---
+    ln -sf /usr/bin/searchsploit                    /usr/local/bin/exploit-db && \
+    ln -sf /usr/local/bin/newman                    /usr/local/bin/postman && \
+    ln -sf /usr/bin/http                            /usr/local/bin/httpie && \
+    ln -sf /usr/local/bin/graphql-inspector         /usr/local/bin/graphql-scanner && \
+    ln -sf /usr/bin/tsk_loaddb                      /usr/local/bin/sleuthkit && \
+    ln -sf /usr/bin/msfconsole                      /usr/local/bin/metasploit && \
+    ln -sf /usr/local/bin/pwned                     /usr/local/bin/have-i-been-pwned && \
+    ln -sf /usr/local/bin/clairctl                  /usr/local/bin/clair && \
+    ln -sf /usr/bin/bulk_extractor                  /usr/local/bin/bulk-extractor && \
+    ln -sf /usr/local/bin/one_gadget                /usr/local/bin/one-gadget && \
+    ln -sf /root/.local/bin/censys                  /usr/local/bin/censys-cli && \
+    ln -sf /root/.local/bin/shodan                  /usr/local/bin/shodan-cli && \
+    ln -sf /opt/hexstrike/tools/libc-database/find  /usr/local/bin/libc-database && \
+    printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
+    printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
+    printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager
 
 # ==============================================================================
 # Phase 18: Image Cleanup
 # ==============================================================================
-RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config && \
+RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config unzip || true && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
