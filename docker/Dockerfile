@@ -524,7 +524,7 @@ RUN set -eux; \
       *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
       *) : ;; \
     esac; \
-    bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1 || true)"; \
+    bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)"; \
     [ -n "$bin_path" ] || bin_path="./$name"; \
     [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; \
     [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; }; \
@@ -542,7 +542,7 @@ RUN set -eux; \
     *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
     *) : ;; \
   esac; \
-  bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1 || true)"; \
+  bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)"; \
   [ -n "$bin_path" ] || bin_path="./$name"; \
   [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; \
   [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; }; \
@@ -700,7 +700,7 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 18: Image Cleanup
 # ==============================================================================
-RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config unzip || true && \
+RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config unzip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
