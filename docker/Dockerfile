@@ -719,6 +719,15 @@ RUN set -eux; \
     ln -sf /root/.local/bin/shodan                 /usr/local/bin/shodan-cli && \
     ln -sf /opt/hexstrike/tools/libc-database/find /usr/local/bin/libc-database && \
     ln -sf /opt/hexstrike/venv/bin/ROPgadget       /usr/local/bin/ropgadget && \
+    ln -sf /opt/hexstrike/venv/bin/pwn             /usr/local/bin/pwntools && \
+    ln -sf /root/.local/bin/scout                  /usr/local/bin/scout-suite && \
+    ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
+    ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
+    \
+    printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=[\"patator\"]+sys.argv[1:]\nrunpy.run_path(\"/usr/share/patator/patator.py\", run_name=\"__main__\")\n' \
+      > /usr/local/bin/patator && chmod +x /usr/local/bin/patator && \
+    printf '#!/usr/bin/env node\nrequire(\"/usr/lib/node_modules/social-analyzer/dist/index.js\");\n' \
+      > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
     \
     # Volatility name variants expected by the server
     printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
@@ -728,9 +737,6 @@ RUN set -eux; \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
     \
-    # Burp Suite: make sure PATH resolves consistently
-    ln -sf /usr/bin/burpsuite                      /usr/local/bin/burpsuite && \
-    \
     # hashcat-utils launcher (see note): provide a real entrypoint name the server checks
     printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package \"hashcat-utils\" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named \"hashcat-utils\". The server health-check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx \"$@\"\n' \
       > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
@@ -738,7 +744,7 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 18: Image Cleanup
 # ==============================================================================
-RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config unzip && \
+RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
