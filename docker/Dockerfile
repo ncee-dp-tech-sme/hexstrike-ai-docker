@@ -44,7 +44,7 @@ RUN set -eux; \
   # Drop typed-ast (not supported on Python ≥ 3.10)
   sed -i '/^typed-ast==/d' "$REQ"; \
   # Optionally bump pyjq to a newer compatible version if pinned
-  sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ" || true; \
+  sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ"; \
   # Install all dependencies in the CloudMapper venv
   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
@@ -76,15 +76,9 @@ RUN set -eux; \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
     go install -v github.com/hahwul/dalfox/v2@latest && \
     go install -v github.com/jaeles-project/jaeles@latest && \
-    go install -v github.com/aquasecurity/kube-bench/v2/cmd/kube-bench@latest && \
-    go install -v github.com/lc/gau/v2/cmd/gau@latest && \
-    go install -v github.com/tomnomnom/waybackurls@latest && \
-    go install -v github.com/tomnomnom/assetfinder@latest && \
-    go install -v github.com/tomnomnom/anew@latest && \
-    go install -v github.com/tomnomnom/qsreplace@latest && \
     # Clean Go build/module caches to keep the layer tiny
-    go clean -cache -modcache || true; \
-    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod || true
+    go clean -cache -modcache; \
+    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod
 
 # katana requires CGO (go-tree-sitter). Build in a separate RUN and purge caches.
 ENV CGO_ENABLED=1 \
@@ -92,8 +86,8 @@ ENV CGO_ENABLED=1 \
     GOCACHE=/tmp/gocache
 RUN set -eux; \
     go install -v github.com/projectdiscovery/katana/cmd/katana@latest && \
-    go clean -cache -modcache || true; \
-    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod || true
+    go clean -cache -modcache; \
+    rm -rf "${GOMODCACHE}" "${GOCACHE}" /go/pkg/mod /root/go/pkg/mod
 
 # ------------------------------------------------------------------------------
 # Stage D: Rust Builder
@@ -141,8 +135,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev \
         pkg-config \
         git \
+        jq \
     && python3 -m pip install --no-cache-dir gyp-next
 
+# Install insomnia CLI plus supporting reconnaissance tools (official releases)
 RUN npm install -g --build-from-source insomnia-inso \
     && npm cache clean --force
 
@@ -191,7 +187,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         jq
 
 # ==============================================================================
-# Phase 2: Language Runtimes aand Build Tools
+# Phase 2: Language Runtimes and Build Tools
 # ==============================================================================
 # Runtimes used by the tooling (Go/Rust come from their dedicated builder stages)
 # - Node.js + npm - Required by some OSINT and web tools
@@ -227,7 +223,7 @@ RUN /usr/bin/python3 -m venv "$VIRTUAL_ENV" \
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=120 \
     PIP_NO_PYTHON_VERSION_WARNING=1
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="${PATH}:/root/.local/bin"
 
 # ==============================================================================
 # Phase 4: Core Python Dependencies (app)
@@ -368,7 +364,6 @@ RUN apt-get install -y --no-install-recommends \
 # - assetfinder: Subdomain/asset enumerator
 # - anew: Append-only deduplication helper
 # - qsreplace: Query parameter mutation utility
-# - kube-bench: CIS Kubernetes benchmark auditing
 COPY --from=go-builder /out/* /usr/local/bin/
 
 # x8 - Hidden parameter discovery (from Rust builder)
@@ -442,7 +437,7 @@ RUN pip install --no-cache-dir \
 COPY --from=rust-builder /out/pwninit /usr/local/bin/pwninit
 
 # zsteg - PNG/BMP steganography detection
-# one_gadget - ROP gadget finder for GLIB
+# one_gadget - ROP gadget finder for glibc
 RUN gem install --no-document zsteg one_gadget
 
 # HashPump: provide CLI wrapper via hashpumpy (PyPI)
@@ -493,6 +488,55 @@ RUN npm install -g \
         graphql-playground-html \
         graphql-voyager \
         newman
+
+# Install GitHub releases for reconnaissance tools (prefer stable; fallback to newest prerelease)
+RUN set -eux; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls tomnomnom/assetfinder; do \
+    name="${repo##*/}"; \
+    api="https://api.github.com/repos/${repo}"; \
+    releases="$(curl -fsSL "${api}/releases")"; \
+    # 1) Try latest stable (not draft, not prerelease)
+    url="$(printf '%s' "$releases" \
+      | jq -r 'map(select(.draft==false and .prerelease==false)) \
+               | .[0].assets[]? \
+               | .browser_download_url \
+               | select(test("(linux|Linux).*(amd64|x86_64).*(\\.(tgz|tar\\.gz|zip)$|$)"))' \
+      | head -n1)"; \
+    # 2) Fallback to newest prerelease (not draft)
+    if [ -z "$url" ]; then \
+      url="$(printf '%s' "$releases" \
+        | jq -r 'map(select(.draft==false and .prerelease==true)) \
+                 | .[0].assets[]? \
+                 | .browser_download_url \
+                 | select(test("(linux|Linux).*(amd64|x86_64).*(\\.(tgz|tar\\.gz|zip)$|$)"))' \
+        | head -n1)"; \
+    fi; \
+    [ -n "$url" ] || { echo "No linux-amd64 asset found for $repo"; exit 1; }; \
+    file="${url##*/}"; \
+    curl -fsSL -o "$file" "$url"; \
+    case "$file" in \
+      *.tgz|*.tar.gz) tar -xzf "$file" ;; \
+      *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
+      *) : ;; \
+    esac; \
+    bin_path="$(find . -type f -perm -111 -printf '%P\n' \
+      | grep -E '(^|/)'\"$name\"'($|[^a-zA-Z0-9._-])' | head -n1 || true)"; \
+    if [ -z "$bin_path" ] && [ -f "./$name" ]; then bin_path="./$name"; fi; \
+    if [ -z "$bin_path" ]; then bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)"; fi; \
+    [ -n "$bin_path" ] || { echo "No executable found for $repo"; exit 1; }; \
+    install -m 0755 "$bin_path" "/usr/local/bin/$name"; \
+  done; \
+  cd /; rm -rf "$tmp"
+
+RUN set -eux; \
+    tmp=$(mktemp -d); cd "$tmp"; \
+    tag=$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest | jq -r '.tag_name'); \
+    file="gau_${tag#v}_linux_amd64.tar.gz"; \
+    curl -fsSL -o gau.tgz "https://github.com/lc/gau/releases/download/${tag}/${file}"; \
+    tar -xzf gau.tgz; \
+    install -m 0755 gau /usr/local/bin/gau; \
+    cd /; rm -rf "$tmp"
 
 # Bundle isolated Node.js 18 runtime for insomnia-inso only
 COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia-node18
@@ -546,7 +590,6 @@ RUN apt-get install -y --no-install-recommends \
 #   - Pacu via pipx on CPython 3.12 to avoid Python 3.13 C-API build issues
 #   - Keep other tools cloned from upstream (jwt_tool, libc-database, peda, stegsolve)
 # ==============================================================================
-
 # Bring CloudMapper code and its dedicated venv from the builder stage
 COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
 COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
@@ -595,7 +638,23 @@ RUN set -eux; \
     esac; \
     curl -fsSL "$url" -o /usr/local/bin/clairctl; \
     chmod 0755 /usr/local/bin/clairctl; \
-    /usr/local/bin/clairctl --version || true
+    /usr/local/bin/clairctl --version
+
+# kube-bench - CIS Kubernetes benchmark auditing
+RUN set -eux; \
+    tmp=$(mktemp -d); cd "$tmp"; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) suffix="amd64";; \
+      arm64) suffix="arm64";; \
+      *) echo "unsupported arch for kube-bench: $arch"; exit 1;; \
+    esac; \
+    tag=$(curl -fsSL https://api.github.com/repos/aquasecurity/kube-bench/releases/latest | jq -r '.tag_name'); \
+    file="kube-bench_${tag#v}_linux_${suffix}.tar.gz"; \
+    curl -fsSL -o kube-bench.tgz "https://github.com/aquasecurity/kube-bench/releases/download/${tag}/${file}"; \
+    tar -xzf kube-bench.tgz; \
+    install -m 0755 kube-bench /usr/local/bin/kube-bench; \
+    cd /; rm -rf "$tmp"
 
 # ==============================================================================
 # Phase 17: MCP Entry Points & Wrappers
@@ -605,31 +664,29 @@ RUN set -eux; \
     mkdir -p /opt/burpsuite && \
     if [ -f /usr/share/burpsuite/burpsuite.jar ]; then ln -sf /usr/share/burpsuite/burpsuite.jar /opt/burpsuite/burpsuite.jar; fi && \
     ln -sf /usr/local/bin/newman /usr/local/bin/postman && \
+    ln -sf /usr/bin/http /usr/local/bin/httpie && \
     printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
     printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
-    printf '#!/usr/bin/env python3\nimport json\nimport sys\n\nif len(sys.argv) < 2:\n    print("Usage: api-schema-analyzer <schema-file>")\n    sys.exit(1)\n\npath = sys.argv[1]\nwith open(path, "r", encoding="utf-8") as handle:\n    data = json.load(handle)\npaths = data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n    verbs = ", ".join(m.upper() for m in methods.keys())\n    print(f"- {route}: {verbs}")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
+    printf '#!/usr/bin/env python3\nimport json\nimport sys\n\nif len(sys.argv) < 2:\n    print(\"Usage: api-schema-analyzer <schema-file>\")\n    sys.exit(1)\n\npath = sys.argv[1]\nwith open(path, \"r\", encoding=\"utf-8\") as handle:\n    data = json.load(handle)\npaths = data.get(\"paths\", {})\nprint(f\"Endpoints: {len(paths)}\")\nfor route, methods in paths.items():\n    verbs = \", \".join(m.upper() for m in methods.keys())\n    print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
     ln -sf /usr/bin/bulk_extractor /usr/local/bin/bulk-extractor && \
-    ln -sf /root/.local/bin/censys /usr/local/bin/censys-cli || true && \
+    ln -sf /root/.local/bin/censys /usr/local/bin/censys-cli && \
     ln -sf /usr/local/bin/clairctl /usr/local/bin/clair && \
     printf '#!/bin/bash\nexec searchsploit "$@"\n' > /usr/local/bin/exploit-db && chmod +x /usr/local/bin/exploit-db && \
-    printf '#!/bin/bash\nexec /usr/lib/hashcat-utils/cap2hccapx "$@"\n' > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils && \
     printf '#!/bin/bash\nexec pwned "$@"\n' > /usr/local/bin/have-i-been-pwned && chmod +x /usr/local/bin/have-i-been-pwned && \
     printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
     printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
     printf '#!/bin/bash\nexec /opt/hexstrike/tools/libc-database/find "$@"\n' > /usr/local/bin/libc-database && chmod +x /usr/local/bin/libc-database && \
     ln -sf /usr/bin/msfconsole /usr/local/bin/metasploit && \
-    ln -sf /usr/local/bin/one_gadget /usr/local/bin/one-gadget || true && \
-    ln -sf /opt/hexstrike/venv/bin/ROPgadget /usr/local/bin/ropgadget || true && \
-    ln -sf /opt/hexstrike/venv/bin/pwn /usr/local/bin/pwntools || true && \
-    ln -sf /root/.local/bin/scout /usr/local/bin/scout-suite || true && \
-    ln -sf /root/.local/bin/ScoutSuite /usr/local/bin/scout-suite || true && \
-    ln -sf /root/.local/bin/shodan /usr/local/bin/shodan-cli || true && \
+    ln -sf /usr/local/bin/one_gadget /usr/local/bin/one-gadget && \
+    ln -sf /opt/hexstrike/venv/bin/ROPgadget /usr/local/bin/ropgadget && \
+    ln -sf /opt/hexstrike/venv/bin/pwn /usr/local/bin/pwntools && \
+    ln -sf /root/.local/bin/scout /usr/local/bin/scout-suite && \
+    ln -sf /root/.local/bin/shodan /usr/local/bin/shodan-cli && \
     printf '#!/bin/bash\nexec tsk_loaddb "$@"\n' > /usr/local/bin/sleuthkit && chmod +x /usr/local/bin/sleuthkit && \
     printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n' > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve && \
-    ln -sf /opt/hexstrike/venv/bin/volatility3 /usr/local/bin/volatility3 || true && \
-    ln -sf /usr/bin/volatility3 /usr/local/bin/volatility3 || true && \
-    ln -sf /usr/bin/volatility /usr/local/bin/volatility || true && \
-    ln -sf /usr/local/bin/graphql-inspector /usr/local/bin/graphql-scanner || true
+    ln -sf /opt/hexstrike/venv/bin/vol /usr/local/bin/volatility3 && \
+    ln -sf /opt/hexstrike/venv/bin/vol /usr/local/bin/volatility && \
+    ln -sf /usr/local/bin/graphql-inspector /usr/local/bin/graphql-scanner
 
 # ==============================================================================
 # Phase 18: Image Cleanup
