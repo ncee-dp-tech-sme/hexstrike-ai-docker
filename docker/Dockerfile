@@ -382,6 +382,19 @@ RUN set -euo pipefail; \
   chmod 0755 x8; install -m 0755 x8 /usr/local/bin/x8; \
   cd /; rm -rf "$tmp"
 
+# gau — GitHub release (linux_amd64, strict match, no fallbacks)
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  j="$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest)"; \
+  tag="$(printf '%s' "$j" | jq -r '.tag_name')"; \
+  asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^gau_[0-9.]+_linux_amd64\\.tar\\.gz$"))' | head -n1)"; \
+  [ -n "$asset" ] || { echo 'gau: linux_amd64 tar.gz asset not found'; exit 1; }; \
+  curl -fsSL -o "$asset" "https://github.com/lc/gau/releases/download/${tag}/${asset}"; \
+  # Archive is expected to contain a single file named "gau"
+  tar -xOzf "$asset" gau > gau; \
+  install -m 0755 gau /usr/local/bin/gau; \
+  cd /; rm -rf "$tmp"
+
 
 # ==============================================================================
 # Phase 8: Authentication & Password Security
@@ -671,31 +684,46 @@ RUN set -eux; \
 # ==============================================================================
 RUN set -eux; \
     # CloudMapper wrapper: ensure execution via its dedicated venv
-    printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
+    printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' \
+      > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
     # Insomnia CLI wrapper: run with isolated Node 18 runtime
-    printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
-    # API schema analyzer helper (custom)
-    printf '#!/usr/bin/env python3\nimport json,sys\nif len(sys.argv)<2:\n print("Usage: api-schema-analyzer <schema-file>"); sys.exit(1)\npath=sys.argv[1]\nwith open(path, "r", encoding="utf-8") as h:\n data=json.load(h)\npaths=data.get("paths", {})\nprint(f"Endpoints: {len(paths)}")\nfor route, methods in paths.items():\n verbs=\", \".join(m.upper() for m in methods.keys())\n print(f\"- {route}: {verbs}\")\n' > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
+    printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' \
+      > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
     # StegSolve wrapper: run jar with Java
-    printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n' > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve && \
+    printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n' \
+      > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve && \
+    # JWT analyzer convenience wrapper
+    printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' \
+      > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
+    # API schema analyzer helper (minimal, prints endpoints + verbs)
+    printf '#!/usr/bin/env python3\nimport json,sys\nif len(sys.argv)<2:\n print("Usage: api-schema-analyzer <schema-file>"); sys.exit(1)\npath=sys.argv[1]\nwith open(path,"r",encoding="utf-8") as h:\n data=json.load(h)\npaths=data.get("paths",{})\nprint(f"Endpoints: {len(paths)}")\nfor route,methods in paths.items():\n verbs=\", \".join(m.upper() for m in methods.keys())\n print(f\"- {route}: {verbs}\")\n' \
+      > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer && \
+    # GraphQL helpers via npx
+    printf '#!/bin/bash\nexec npx --yes graphql-playground-html "$@"\n' \
+      > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
+    printf '#!/bin/bash\nexec npx --yes graphql-voyager "$@"\n' \
+      > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
     \
-    # --- Minimal compatibility aliases required by hexstrike_server.py ---
-    ln -sf /usr/bin/searchsploit                    /usr/local/bin/exploit-db && \
-    ln -sf /usr/local/bin/newman                    /usr/local/bin/postman && \
-    ln -sf /usr/bin/http                            /usr/local/bin/httpie && \
-    ln -sf /usr/local/bin/graphql-inspector         /usr/local/bin/graphql-scanner && \
-    ln -sf /usr/bin/tsk_loaddb                      /usr/local/bin/sleuthkit && \
-    ln -sf /usr/bin/msfconsole                      /usr/local/bin/metasploit && \
-    ln -sf /usr/local/bin/pwned                     /usr/local/bin/have-i-been-pwned && \
-    ln -sf /usr/local/bin/clairctl                  /usr/local/bin/clair && \
-    ln -sf /usr/bin/bulk_extractor                  /usr/local/bin/bulk-extractor && \
-    ln -sf /usr/local/bin/one_gadget                /usr/local/bin/one-gadget && \
-    ln -sf /root/.local/bin/censys                  /usr/local/bin/censys-cli && \
-    ln -sf /root/.local/bin/shodan                  /usr/local/bin/shodan-cli && \
-    ln -sf /opt/hexstrike/tools/libc-database/find  /usr/local/bin/libc-database && \
-    printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n' > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer && \
-    printf '#!/bin/bash\nnpx --yes graphql-playground-html "$@"\n' > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground && \
-    printf '#!/bin/bash\nnpx --yes graphql-voyager "$@"\n' > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager
+    # --- Compatibility aliases required by hexstrike_server.py ---
+    ln -sf /usr/bin/searchsploit                   /usr/local/bin/exploit-db && \
+    ln -sf /usr/local/bin/newman                   /usr/local/bin/postman && \
+    ln -sf /usr/bin/http                           /usr/local/bin/httpie && \
+    ln -sf /usr/local/bin/graphql-inspector        /usr/local/bin/graphql-scanner && \
+    ln -sf /usr/bin/tsk_loaddb                     /usr/local/bin/sleuthkit && \
+    ln -sf /usr/bin/msfconsole                     /usr/local/bin/metasploit && \
+    ln -sf /usr/local/bin/pwned                    /usr/local/bin/have-i-been-pwned && \
+    ln -sf /usr/local/bin/clairctl                 /usr/local/bin/clair && \
+    ln -sf /usr/bin/bulk_extractor                 /usr/local/bin/bulk-extractor && \
+    ln -sf /usr/local/bin/one_gadget               /usr/local/bin/one-gadget && \
+    ln -sf /root/.local/bin/censys                 /usr/local/bin/censys-cli && \
+    ln -sf /root/.local/bin/shodan                 /usr/local/bin/shodan-cli && \
+    ln -sf /opt/hexstrike/tools/libc-database/find /usr/local/bin/libc-database && \
+    ln -sf /opt/hexstrike/venv/bin/ROPgadget       /usr/local/bin/ropgadget && \
+    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
+    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
+    # Some code paths expect an exact "vol.py" name: delegate to volatility3
+    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
+      > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py
 
 # ==============================================================================
 # Phase 18: Image Cleanup
