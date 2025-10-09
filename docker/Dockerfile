@@ -719,11 +719,21 @@ RUN set -eux; \
     ln -sf /root/.local/bin/shodan                 /usr/local/bin/shodan-cli && \
     ln -sf /opt/hexstrike/tools/libc-database/find /usr/local/bin/libc-database && \
     ln -sf /opt/hexstrike/venv/bin/ROPgadget       /usr/local/bin/ropgadget && \
+    \
+    # Volatility name variants expected by the server
+    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
+      > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py && \
+    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
+      > /usr/local/bin/volatility && chmod +x /usr/local/bin/volatility && \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
-    # Some code paths expect an exact "vol.py" name: delegate to volatility3
-    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
-      > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py
+    \
+    # Burp Suite: make sure PATH resolves consistently
+    ln -sf /usr/bin/burpsuite                      /usr/local/bin/burpsuite && \
+    \
+    # hashcat-utils launcher (see note): provide a real entrypoint name the server checks
+    printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package \"hashcat-utils\" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named \"hashcat-utils\". The server health-check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx \"$@\"\n' \
+      > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
 
 # ==============================================================================
 # Phase 18: Image Cleanup
