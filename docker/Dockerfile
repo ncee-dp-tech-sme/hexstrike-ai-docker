@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Stage A: Python 3.12 Base (for prowler) 
+# Stage A: Python 3.12 Base (for prowler and Pacu) 
 # ------------------------------------------------------------------------------
 FROM python:3.12-slim AS python312-base
 
@@ -49,7 +49,7 @@ RUN set -eux; \
   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
 # ------------------------------------------------------------------------------
-# Stage E: Node.js 18 Builder for insomnia-inso (isolated runtime)
+# Stage C: Node.js 18 Builder for insomnia-inso (isolated runtime)
 # ------------------------------------------------------------------------------
 FROM node:18-bullseye AS insomnia-node18-builder
 
@@ -79,14 +79,14 @@ RUN mkdir -p /opt/insomnia-artifacts/node18 && \
     cp -a /opt/insomnia /opt/insomnia-artifacts/insomnia
 
 # ------------------------------------------------------------------------------
-# Stage F: Final - Kali Linux + Python 3.12 + categorized tooling
+# Stage D: Final - Kali Linux + All Tools & Runtimes
 # ------------------------------------------------------------------------------
 FROM docker.io/kalilinux/kali-rolling:latest
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
 
-# Bring CPython 3.12 from Stage A (needed by prowler)
+# Copy Python 3.12 runtime from Stage A (needed by prowler and Pacu)
 COPY --from=python312-base /usr/local/ /usr/local/
 RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
@@ -118,11 +118,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 2: Language Runtimes and Build Tools
 # ==============================================================================
-# Runtimes used by the tooling (Go/Rust come da release ufficiali)
 # - Node.js + npm - Required by some OSINT and web tools
 # - Java (JDK) - Required by certain binary analysis tools
 # - Ruby - Required by WPScan and auxiliary gems
-# - pipx - Isolated installer for Python CLIs (Checkov, Prowler, etc.)
+# - pipx - Isolated installer for Python CLIs
 RUN apt-get update && apt-get install -y --no-install-recommends \
         nodejs \
         npm \
@@ -133,8 +132,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-pip \
         build-essential \
         python3-dev \
-        libcurl4-openssl-dev \
-        pkg-config \
         g++
 
 ENV PIPX_DEFAULT_PYTHON=/usr/bin/python3
@@ -155,7 +152,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 ENV PATH="${PATH}:/root/.local/bin"
 
 # ==============================================================================
-# Phase 4: Core Python Dependencies (app)
+# Phase 4: Core Python Dependencies and MCP Server
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
 COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
@@ -173,7 +170,7 @@ RUN apt-get install -y --no-install-recommends \
 
 # Install Python CLIs via pipx (official, isolated)
 # - Checkov - IaC security scanning for Terraform/CloudFormation/Kubernetes
-# - prowler - AWS/Azure/GCP security assessment with compliance checks (requires Python < 3.13)
+# - prowler - AWS/Azure/GCP security assessment with compliance checks
 # - ScoutSuite - Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
 # - kube-hunter - Kubernetes penetration testing (active/passive modes)
 # - shodan - Official Shodan CLI (Python)
@@ -194,7 +191,7 @@ RUN set -eux; \
     install /tmp/terrascan /usr/local/bin/terrascan; \
     rm -f /tmp/terrascan /tmp/terrascan.tgz
 
-# OpenTofu (adds repo, installs tofu, and symlinks terraform)
+# OpenTofu - Terraform-compatible IaC tool (APT repository)
 RUN install -d -m 0755 /etc/apt/keyrings && \
     curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && \
     curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg && \
@@ -237,7 +234,7 @@ RUN apt-get install -y --no-install-recommends \
         samba-common-bin \
         smbclient
 
-# rustscan - Port scanner (official .deb packaged as ZIP in latest release)
+# RustScan - The modern port scanner
 RUN set -eux; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
@@ -253,7 +250,6 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 7: Web Application Security Tools
 # ==============================================================================
-# APT-delivered web tooling (explicit for reproducibility)
 # - gobuster - Directory/DNS enumeration
 # - feroxbuster - Recursive content discovery
 # - ffuf - Fast web fuzzer
@@ -292,25 +288,7 @@ RUN apt-get install -y --no-install-recommends \
         burpsuite \
         zaproxy
 
-# Tools:
-# - katana: Next-generation crawler & spider (JavaScript-aware)
-# - httpx: Fast HTTP probing with tech detection
-# - nuclei: Template-driven vulnerability scanner
-# - dalfox: DOM-aware XSS scanner
-# - jaeles: Signature-based web vulnerability scanner
-# Prereqs already present earlier: curl, jq, unzip, tar, ca-certificates
-
-# --------------------------------------------------------------------
-# Tools
-# - katana: Next-generation crawler & spider (JavaScript-aware)
-# - httpx: Fast HTTP probing with tech detection
-# - nuclei: Template-driven vulnerability scanner
-# - dalfox: DOM-aware XSS scanner
-# - jaeles: Signature-based web vulnerability scanner
-# - x8: Hidden parameter discovery
-# --------------------------------------------------------------------
-
-# - katana: Next-generation crawler & spider (JavaScript-aware)
+# - katana: Next-generation crawler & spider
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/katana/releases/latest)"; \
@@ -346,7 +324,7 @@ RUN set -euo pipefail; \
   chmod 0755 nuclei; install -m 0755 nuclei /usr/local/bin/nuclei; \
   cd /; rm -rf "$tmp"
 
-# dalfox — install linux amd64 from the latest release (strict, no fallbacks)
+# dalfox - Fast XSS scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/hahwul/dalfox/releases/latest)"; \
@@ -370,7 +348,7 @@ RUN set -euo pipefail; \
   chmod 0755 jaeles; install -m 0755 jaeles /usr/local/bin/jaeles; \
   cd /; rm -rf "$tmp"
 
-# - x8: Hidden parameter discovery
+# - x8: Fast XSS scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/Sh1Yo/x8/releases/latest)"; \
@@ -382,7 +360,7 @@ RUN set -euo pipefail; \
   chmod 0755 x8; install -m 0755 x8 /usr/local/bin/x8; \
   cd /; rm -rf "$tmp"
 
-# gau — GitHub release (linux_amd64, strict match, no fallbacks)
+# - gau: GetAllUrls - URL discovery from AlienVault, Wayback Machine, Common Crawl, and URLScan.io
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest)"; \
@@ -454,6 +432,7 @@ RUN apt-get install -y --no-install-recommends \
 # - ropgadget: ROP/JOP gadget finder
 # - volatility3: Next-generation memory forensics framework
 # - uro: URL declutterer / deduplication utility
+# - pwntools: CTF framework and exploit development library
 RUN pip install --no-cache-dir \
         ropgadget \
         volatility3 \
@@ -499,6 +478,7 @@ RUN pip install --no-cache-dir hashpumpy && \
 # - sherlock: Username search across sites
 # - recon-ng: Web recon framework
 # - spiderfoot: OSINT automation
+# - maltego: Graphical link analysis tool
 RUN apt-get install -y --no-install-recommends \
         exploitdb \
         kismet \
@@ -513,7 +493,7 @@ RUN apt-get install -y --no-install-recommends \
 # - graphql-inspector: GraphQL diffing/audit utility
 # - jwt-cracker: JWT cracking utility
 # - graphql-playground-html / graphql-voyager: GraphQL tooling
-# - newman: Postman CLI runner
+# - newman: Postman CLI
 RUN npm install -g \
         social-analyzer \
         pwned \
@@ -523,7 +503,11 @@ RUN npm install -g \
         graphql-voyager \
         newman
 
-# GitHub releases for tomnomnom tools (official binaries; strict latest; no prerelease; no HTML)
+# GitHub releases for tomnomnom tools
+# - anew: Append-only unique line filter
+# - qsreplace: Query string replacement tool
+# - waybackurls: Fetch URLs from the Wayback Machine
+# - assetfinder: Subdomain discovery tool
 RUN set -eux; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls; do \
@@ -582,13 +566,14 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 12: Exploitation Frameworks
 # ==============================================================================
+# - metasploit-framework: Penetration testing framework
 RUN apt-get install -y --no-install-recommends \
         metasploit-framework
 
 # ==============================================================================
 # Phase 13: Runtime Security Agents
 # ==============================================================================
-# Install Falco (extract files without DKMS/systemd during build)
+# - falco: Runtime security monitoring
 RUN install -d -m 0755 /usr/share/keyrings && \
     curl -fsSL https://falco.org/repo/falcosecurity-packages.asc \
       | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg && \
@@ -603,6 +588,7 @@ RUN install -d -m 0755 /usr/share/keyrings && \
 # ==============================================================================
 # Phase 14: Browser Agent Requirements
 # ==============================================================================
+# - chromium & chromium-driver: Headless browser and WebDriver
 RUN apt-get install -y --no-install-recommends \
       chromium \
       chromium-driver
@@ -611,7 +597,6 @@ RUN apt-get install -y --no-install-recommends \
 # Phase 15: Security Tool Repositories & Wrappers
 #   - CloudMapper code and venv are copied from the dedicated builder stage
 #   - Pacu via pipx on CPython 3.12 to avoid Python 3.13 C-API build issues
-#   - Keep other tools cloned from upstream (jwt_tool, libc-database, peda, stegsolve)
 # ==============================================================================
 # Bring CloudMapper code and its dedicated venv from the builder stage
 COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
@@ -680,7 +665,7 @@ RUN set -eux; \
     cd /; rm -rf "$tmp"
 
 # ==============================================================================
-# Phase 17: MCP Entry Points & Minimal Wrappers (only where required)
+# Phase 17: MCP Entry Points & Minimal Wrappers
 # ==============================================================================
 RUN set -eux; \
     # CloudMapper wrapper: ensure execution via its dedicated venv
@@ -704,6 +689,19 @@ RUN set -eux; \
     printf '#!/bin/bash\nexec npx --yes graphql-voyager "$@"\n' \
       > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
     \
+    printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=[\"patator\"]+sys.argv[1:]\nrunpy.run_path(\"/usr/share/patator/patator.py\", run_name=\"__main__\")\n' \
+      > /usr/local/bin/patator && chmod +x /usr/local/bin/patator && \
+    printf '#!/usr/bin/env node\nrequire(\"/usr/lib/node_modules/social-analyzer/dist/index.js\");\n' \
+      > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
+    \
+    # Volatility name variants expected by the server
+    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
+      > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py && \
+    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
+      > /usr/local/bin/volatility && chmod +x /usr/local/bin/volatility && \
+    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
+    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
+    \
     # --- Compatibility aliases required by hexstrike_server.py ---
     ln -sf /usr/bin/searchsploit                   /usr/local/bin/exploit-db && \
     ln -sf /usr/local/bin/newman                   /usr/local/bin/postman && \
@@ -724,28 +722,14 @@ RUN set -eux; \
     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
     \
-    printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=[\"patator\"]+sys.argv[1:]\nrunpy.run_path(\"/usr/share/patator/patator.py\", run_name=\"__main__\")\n' \
-      > /usr/local/bin/patator && chmod +x /usr/local/bin/patator && \
-    printf '#!/usr/bin/env node\nrequire(\"/usr/lib/node_modules/social-analyzer/dist/index.js\");\n' \
-      > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
-    \
-    # Volatility name variants expected by the server
-    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
-      > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py && \
-    printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
-      > /usr/local/bin/volatility && chmod +x /usr/local/bin/volatility && \
-    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
-    ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
-    \
-    # hashcat-utils launcher (see note): provide a real entrypoint name the server checks
+    # hashcat-utils binary does not exist. Provide a real entrypoint name the server checks
     printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package \"hashcat-utils\" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named \"hashcat-utils\". The server health-check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx \"$@\"\n' \
       > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
 
 # ==============================================================================
 # Phase 18: Image Cleanup
 # ==============================================================================
-RUN apt-get purge -y --auto-remove build-essential python3-dev python3-setuptools python3-pip gyp libcurl4-openssl-dev pkg-config && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ==============================================================================
 # Phase 19: Runtime Configuration
