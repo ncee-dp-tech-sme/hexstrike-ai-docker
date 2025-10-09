@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Stage A: Python 3.12 Base (for prowler and Pacu) 
+# Stage A: Python 3.12 base (for Prowler and Pacu)
 # ------------------------------------------------------------------------------
 FROM python:3.12-slim AS python312-base
 
@@ -19,7 +19,8 @@ ENV CM_VENV=/opt/venvs/cloudmapper
 WORKDIR /opt/hexstrike
 
 # Install build prerequisites and jq development libraries for pyjq
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eu; \
+    apt-get update && apt-get install -y --no-install-recommends \
       build-essential autoconf automake libtool pkg-config \
       git curl ca-certificates \
       libjq-dev libonig-dev bison flex \
@@ -34,8 +35,7 @@ RUN git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstri
  && rm -rf /opt/hexstrike/tools/cloudmapper/.git
 
 # Normalize requirement pins and install into the dedicated venv
-RUN set -eux; \
-  REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
+RUN REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
   # Align matplotlib/numpy to versions compatible with Python 3.10
   sed -i \
     -e 's/^matplotlib==3\.4\.3$/matplotlib==3\.7\.5/' \
@@ -49,7 +49,7 @@ RUN set -eux; \
   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
 # ------------------------------------------------------------------------------
-# Stage C: Node.js 18 Builder for insomnia-inso (isolated runtime)
+# Stage C: Node.js 18 builder for insomnia-inso (isolated runtime)
 # ------------------------------------------------------------------------------
 FROM node:18-bullseye AS insomnia-node18-builder
 
@@ -86,7 +86,7 @@ FROM docker.io/kalilinux/kali-rolling:latest
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
 
-# Copy Python 3.12 runtime from Stage A (needed by prowler and Pacu)
+# Copy Python 3.12 runtime from Stage A (needed by Prowler and Pacu)
 COPY --from=python312-base /usr/local/ /usr/local/
 RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so && \
     ldconfig
@@ -94,15 +94,17 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # ==============================================================================
 # Phase 1: Base System Packages
 # ==============================================================================
-# - curl - Data transfer for installers and health checks
-# - wget - Alternative downloader
-# - git - Clone upstream tools when needed
-# - ca-certificates - TLS trust store for secure downloads
-# - gnupg2, lsb-release - Repository key management and release info
-# - xz-utils - XZ compression support (used by some installers)
-# - httpie - HTTP client for diagnostics
-# - wordlists - Common wordlists for SecOps
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# - curl: data transfer utility for installers and health checks
+# - wget: alternative download utility
+# - git: distributed version control
+# - ca-certificates: TLS certificate bundle for secure downloads
+# - gnupg2: OpenPGP toolkit for repository keys
+# - lsb-release: distribution release information
+# - xz-utils: XZ compression utilities
+# - httpie: user-friendly HTTP client
+# - wordlists: common wordlists for security testing
+RUN set -eu; \
+    apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
         wget \
@@ -113,16 +115,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         wordlists \
         httpie \
-        jq
+        jq \
+        unzip
 
 # ==============================================================================
 # Phase 2: Language Runtimes and Build Tools
 # ==============================================================================
-# - Node.js + npm - Required by some OSINT and web tools
-# - Java (JDK) - Required by certain binary analysis tools
-# - Ruby - Required by WPScan and auxiliary gems
-# - pipx - Isolated installer for Python CLIs
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# - node + npm: JavaScript runtime and package manager
+# - default-jdk: Java Development Kit
+# - ruby-full: Ruby language and standard toolchain
+# - pipx: isolated Python CLI installer
+RUN apt-get install -y --no-install-recommends \
         nodejs \
         npm \
         default-jdk \
@@ -163,18 +166,17 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
-# Install cloud and container security CLIs (order matches pipx install below)
-# - ansible - Automation engine for configuration and orchestration
+# - ansible: automation engine for configuration and orchestration
 RUN apt-get install -y --no-install-recommends \
         ansible
 
 # Install Python CLIs via pipx (official, isolated)
-# - Checkov - IaC security scanning for Terraform/CloudFormation/Kubernetes
-# - prowler - AWS/Azure/GCP security assessment with compliance checks
-# - ScoutSuite - Multi-cloud security auditing for AWS/Azure/GCP/Alibaba Cloud
-# - kube-hunter - Kubernetes penetration testing (active/passive modes)
-# - shodan - Official Shodan CLI (Python)
-# - censys - Official Censys CLI (Python)
+# - checkov: IaC security scanner for Terraform/CloudFormation/Kubernetes
+# - prowler: multi-cloud security assessment and compliance checks
+# - ScoutSuite: multi-cloud security auditing (AWS/Azure/GCP/Alibaba Cloud)
+# - kube-hunter: Kubernetes penetration testing (active/passive)
+# - shodan: official Shodan CLI
+# - censys: official Censys CLI
 RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
     pipx install --python /usr/local/bin/python3.12 --pip-args="--no-cache-dir --prefer-binary" prowler     && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  && \
@@ -182,16 +184,15 @@ RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" shodan      && \
     pipx install --pip-args="--no-cache-dir --prefer-binary" censys
 
-# Terrascan - Policy-as-code scanner
-RUN set -eux; \
-    url="$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest \
+# - terrascan: policy-as-code scanner for IaC
+RUN url="$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest \
       | awk -F'"' '/browser_download_url/ && /Linux_[xX]86_64\.tar\.gz/ {print $4; exit}')"; \
     curl -fsSL "$url" -o /tmp/terrascan.tgz; \
     tar -C /tmp -xzf /tmp/terrascan.tgz terrascan; \
     install /tmp/terrascan /usr/local/bin/terrascan; \
     rm -f /tmp/terrascan /tmp/terrascan.tgz
 
-# OpenTofu - Terraform-compatible IaC tool (APT repository)
+# - OpenTofu: Terraform-compatible IaC tool (APT repository)
 RUN install -d -m 0755 /etc/apt/keyrings && \
     curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null && \
     curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg && \
@@ -201,16 +202,36 @@ RUN install -d -m 0755 /etc/apt/keyrings && \
     apt-get update && apt-get install -y --no-install-recommends tofu && \
     ln -sf /usr/bin/tofu /usr/local/bin/terraform
 
-# AWS CLI v2 - Official installer
+# AWS CLI v2 official
 RUN cd /tmp && \
     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip && \
-    apt-get install -y --no-install-recommends unzip && \
     unzip -q awscliv2.zip && ./aws/install && \
     rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # ==============================================================================
 # Phase 6: Network & Reconnaissance Tools
 # ==============================================================================
+# - nmap: network exploration and security auditing
+# - masscan: high-speed port scanner
+# - autorecon: automated network reconnaissance
+# - amass: in-depth attack surface mapping and asset discovery
+# - subfinder: passive subdomain enumeration
+# - sublist3r: fast subdomain enumeration
+# - fierce: DNS reconnaissance
+# - dnsenum: DNS enumeration
+# - dnsrecon: DNS reconnaissance
+# - theharvester: OSINT for emails, hosts, and subdomains
+# - whois: domain registration query client
+# - dnsutils: DNS utilities (dig, nslookup, etc.)
+# - bind9-host: DNS lookup utility
+# - responder: LLMNR, NBT-NS, and MDNS poisoner
+# - netexec: network authentication and execution toolkit
+# - enum4linux-ng: Windows/Samba enumeration (next-gen)
+# - enum4linux: Windows/Samba enumeration
+# - nbtscan: NetBIOS name scanner
+# - arp-scan: ARP network scanner
+# - samba-common-bin: Samba client utilities
+# - smbclient: SMB/CIFS client
 RUN apt-get install -y --no-install-recommends \
         nmap \
         masscan \
@@ -234,14 +255,12 @@ RUN apt-get install -y --no-install-recommends \
         samba-common-bin \
         smbclient
 
-# RustScan - The modern port scanner
-RUN set -eux; \
-  tmp="$(mktemp -d)"; cd "$tmp"; \
+# - rustscan: modern and fast port scanner
+RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
          | jq -r '.assets[]?.browser_download_url | select(endswith("rustscan.deb.zip"))' | head -n1)"; \
   [ -n "$url" ] || { echo "rustscan.deb.zip asset not found in latest release"; exit 1; }; \
   curl -fsSL -o rustscan.deb.zip "$url"; \
-  apt-get update && apt-get install -y --no-install-recommends unzip; \
   unzip -q rustscan.deb.zip; \
   deb="$(printf '%s\n' rustscan*.deb | head -n1)"; \
   dpkg -i "$deb" || apt-get -f install -y; \
@@ -250,24 +269,24 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 7: Web Application Security Tools
 # ==============================================================================
-# - gobuster - Directory/DNS enumeration
-# - feroxbuster - Recursive content discovery
-# - ffuf - Fast web fuzzer
-# - dotdotpwn - Path traversal fuzzer
-# - xsser - XSS framework
-# - wfuzz - Web application fuzzer
-# - dirb - Web content scanner
-# - dirsearch - Web path scanner
-# - nikto - Web server scanner
-# - sqlmap - SQL injection automation
-# - wpscan - WordPress scanner
-# - arjun - HTTP parameter discovery
-# - paramspider - Parameter miner
-# - hakrawler - Web endpoint crawler
-# - wafw00f - WAF fingerprinting
-# - whatweb - Web tech fingerprinting
-# - burpsuite - Web security testing platform
-# - zaproxy - OWASP ZAP scanner
+# - gobuster: directory and DNS enumeration
+# - feroxbuster: recursive content discovery
+# - ffuf: fast web fuzzer
+# - dotdotpwn: path traversal fuzzer
+# - xsser: cross-site scripting framework
+# - wfuzz: web application fuzzer
+# - dirb: web content scanner
+# - dirsearch: web path scanner
+# - nikto: web server scanner
+# - sqlmap: automated SQL injection tool
+# - wpscan: WordPress security scanner
+# - arjun: HTTP parameter discovery
+# - paramspider: parameter miner
+# - hakrawler: web endpoint crawler
+# - wafw00f: WAF fingerprinting
+# - whatweb: web technology fingerprinting
+# - burpsuite: web security testing platform
+# - zaproxy: OWASP ZAP scanner
 RUN apt-get install -y --no-install-recommends \
         gobuster \
         feroxbuster \
@@ -288,7 +307,7 @@ RUN apt-get install -y --no-install-recommends \
         burpsuite \
         zaproxy
 
-# - katana: Next-generation crawler & spider
+# - katana: next-generation web crawler and spider
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/katana/releases/latest)"; \
@@ -300,7 +319,7 @@ RUN set -euo pipefail; \
   chmod 0755 katana; install -m 0755 katana /usr/local/bin/katana; \
   cd /; rm -rf "$tmp"
 
-# - httpx: Fast HTTP probing with tech detection
+# - httpx: fast HTTP probing with technology detection
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/httpx/releases/latest)"; \
@@ -312,7 +331,7 @@ RUN set -euo pipefail; \
   chmod 0755 httpx; install -m 0755 httpx /usr/local/bin/httpx; \
   cd /; rm -rf "$tmp"
 
-# - nuclei: Template-driven vulnerability scanner
+# - nuclei: template-driven vulnerability scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/nuclei/releases/latest)"; \
@@ -324,7 +343,7 @@ RUN set -euo pipefail; \
   chmod 0755 nuclei; install -m 0755 nuclei /usr/local/bin/nuclei; \
   cd /; rm -rf "$tmp"
 
-# dalfox - Fast XSS scanner
+# - dalfox: fast XSS scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/hahwul/dalfox/releases/latest)"; \
@@ -336,7 +355,7 @@ RUN set -euo pipefail; \
   install -m 0755 dalfox /usr/local/bin/dalfox; \
   cd /; rm -rf "$tmp"
 
-# - jaeles: Signature-based web vulnerability scanner
+# - jaeles: signature-based web vulnerability scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/jaeles-project/jaeles/releases/latest)"; \
@@ -348,7 +367,7 @@ RUN set -euo pipefail; \
   chmod 0755 jaeles; install -m 0755 jaeles /usr/local/bin/jaeles; \
   cd /; rm -rf "$tmp"
 
-# - x8: Fast XSS scanner
+# - x8: fast XSS scanner
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/Sh1Yo/x8/releases/latest)"; \
@@ -360,7 +379,7 @@ RUN set -euo pipefail; \
   chmod 0755 x8; install -m 0755 x8 /usr/local/bin/x8; \
   cd /; rm -rf "$tmp"
 
-# - gau: GetAllUrls - URL discovery from AlienVault, Wayback Machine, Common Crawl, and URLScan.io
+# - gau: URL discovery from AlienVault, Wayback Machine, Common Crawl, and URLScan.io
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
   j="$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest)"; \
@@ -368,7 +387,6 @@ RUN set -euo pipefail; \
   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^gau_[0-9.]+_linux_amd64\\.tar\\.gz$"))' | head -n1)"; \
   [ -n "$asset" ] || { echo 'gau: linux_amd64 tar.gz asset not found'; exit 1; }; \
   curl -fsSL -o "$asset" "https://github.com/lc/gau/releases/download/${tag}/${asset}"; \
-  # Archive is expected to contain a single file named "gau"
   tar -xOzf "$asset" gau > gau; \
   install -m 0755 gau /usr/local/bin/gau; \
   cd /; rm -rf "$tmp"
@@ -377,17 +395,16 @@ RUN set -euo pipefail; \
 # ==============================================================================
 # Phase 8: Authentication & Password Security
 # ==============================================================================
-# Install password cracking and authentication testing tools
-# - hydra: Network login cracker
-# - john: Password cracker
-# - hashcat: GPU-accelerated password recovery
-# - medusa: Parallel brute-forcer
-# - patator: Multi-purpose brute-forcer
+# - hydra: network login cracker
+# - john: password cracker
+# - hashcat: gpu-accelerated password recovery
+# - medusa: parallel brute-forcer
+# - patator: multi-purpose brute-forcer
 # - evil-winrm: WinRM shell for Windows
-# - hash-identifier: Hash type identification
-# - hashid: Hash algorithm identifier
+# - hash-identifier: hash type identifier
+# - hashid: hash algorithm identifier
 # - ophcrack: Windows password cracker
-# - hashcat-utils: Utilities for hashcat
+# - hashcat-utils: companion utilities for hashcat
 RUN apt-get install -y --no-install-recommends \
         hydra \
         john \
@@ -403,7 +420,28 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 9: Binary & Forensics Tools
 # ==============================================================================
-# Install binary analysis and forensics tooling referenced in README.md
+# - gdb: GNU debugger
+# - radare2: reverse engineering framework
+# - ghidra: software reverse engineering suite
+# - binwalk: firmware analysis tool
+# - checksec: binary security checks
+# - foremost: file carving utility
+# - steghide: steganography tool
+# - exiftool: metadata extraction
+# - ropper: ROP gadget finder
+# - autopsy: digital forensics platform
+# - sleuthkit: digital forensics toolkit
+# - outguess: steganography analysis
+# - testdisk: data recovery utility
+# - scalpel: file carving utility
+# - bulk-extractor: bulk data extractor for forensics
+# - smbmap: SMB share enumerator
+# - zbar-tools: barcode and QR decoding
+# - p7zip-full: 7-Zip archiver
+# - apktool: Android APK analysis
+# - android-tools-adb: Android Debug Bridge
+# - binutils: binary utilities
+# - xxd: hex dump utility
 RUN apt-get install -y --no-install-recommends \
         gdb \
         radare2 \
@@ -428,20 +466,19 @@ RUN apt-get install -y --no-install-recommends \
         binutils \
         xxd
 
-# Python-based binary helpers (latest stable releases)
+# Python-based helpers
 # - ropgadget: ROP/JOP gadget finder
-# - volatility3: Next-generation memory forensics framework
-# - uro: URL declutterer / deduplication utility
-# - pwntools: CTF framework and exploit development library
+# - volatility3: memory forensics framework
+# - uro: URL deduplication and normalization
+# - pwntools: CTF and exploit development library
 RUN pip install --no-cache-dir \
         ropgadget \
         volatility3 \
         uro \
         pwntools
 
-# pwninit - CTF binary setup automation (official release binary)
-RUN set -eux; \
-  tmp="$(mktemp -d)"; cd "$tmp"; \
+# pwninit: CTF binary setup automation
+RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   json="$(curl -fsSL https://api.github.com/repos/io12/pwninit/releases/latest)"; \
   url="$(printf '%s\n' "$json" | jq -r '.assets[]?.browser_download_url' | grep -E '/pwninit($|[^/]*$)' | head -n1)"; \
   [ -n "$url" ] || { echo "No binary asset for pwninit latest"; exit 1; }; \
@@ -449,11 +486,11 @@ RUN set -eux; \
   chmod +x pwninit; install -m 0755 pwninit /usr/local/bin/pwninit; \
   cd /; rm -rf "$tmp"
 
-# zsteg - PNG/BMP steganography detection
-# one_gadget - ROP gadget finder for glibc
+# - zsteg: PNG/BMP steganography detection
+# - one_gadget: ROP gadget finder for glibc
 RUN gem install --no-document zsteg one_gadget
 
-# HashPump: provide CLI wrapper via hashpumpy (PyPI)
+# - hashpump: length extension attack helper (via hashpumpy CLI wrapper)
 RUN pip install --no-cache-dir hashpumpy && \
     printf '%s\n' '#!/usr/bin/env python3' \
 'import argparse' \
@@ -472,13 +509,12 @@ RUN pip install --no-cache-dir hashpumpy && \
 # ==============================================================================
 # Phase 10: OSINT & Intelligence Tools
 # ==============================================================================
-# Install OSINT tooling referenced in README.md and MCP routes
-# - exploitdb: Exploit Database
-# - kismet: Wireless network detector
-# - sherlock: Username search across sites
-# - recon-ng: Web recon framework
-# - spiderfoot: OSINT automation
-# - maltego: Graphical link analysis tool
+# - exploitdb: exploit database search client
+# - kismet: wireless network detector and sniffer
+# - sherlock: username enumeration across sites
+# - recon-ng: web reconnaissance framework
+# - spiderfoot: automated OSINT platform
+# - maltego: graphical link analysis
 RUN apt-get install -y --no-install-recommends \
         exploitdb \
         kismet \
@@ -487,13 +523,14 @@ RUN apt-get install -y --no-install-recommends \
         spiderfoot \
         maltego
 
-# Install OSINT companion CLIs via npm (Node.js LTS runtime)
-# - social-analyzer: Social media analysis toolkit
-# - pwned: Have I Been Pwned CLI
-# - graphql-inspector: GraphQL diffing/audit utility
-# - jwt-cracker: JWT cracking utility
-# - graphql-playground-html / graphql-voyager: GraphQL tooling
-# - newman: Postman CLI
+# OSINT companion CLIs via npm (Node.js LTS runtime)
+# - social-analyzer: social media analysis toolkit
+# - pwned: have i been pwned? CLI
+# - graphql-inspector: GraphQL diffing and audit utility
+# - jwt-cracker: JSON Web Token cracking utility
+# - graphql-playground-html: GraphQL playground HTML renderer
+# - graphql-voyager: GraphQL schema visualization
+# - newman: Postman CLI runner
 RUN npm install -g \
         social-analyzer \
         pwned \
@@ -504,12 +541,11 @@ RUN npm install -g \
         newman
 
 # GitHub releases for tomnomnom tools
-# - anew: Append-only unique line filter
-# - qsreplace: Query string replacement tool
-# - waybackurls: Fetch URLs from the Wayback Machine
-# - assetfinder: Subdomain discovery tool
-RUN set -eux; \
-  tmp="$(mktemp -d)"; cd "$tmp"; \
+# - anew: append-only unique line filter
+# - qsreplace: query string replacement
+# - waybackurls: URL collection from Wayback Machine
+# - assetfinder: subdomain discovery
+RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls; do \
     name="${repo##*/}"; \
     json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")"; \
@@ -518,7 +554,7 @@ RUN set -eux; \
     file="${url##*/}"; curl -fsSL -o "$file" "$url"; \
     case "$file" in \
       *.tgz|*.tar.gz) tar -xzf "$file" ;; \
-      *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
+      *.zip) unzip -q "$file" ;; \
       *) : ;; \
     esac; \
     bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)"; \
@@ -536,7 +572,7 @@ RUN set -eux; \
   file="${url##*/}"; curl -fsSL -o "$file" "$url"; \
   case "$file" in \
     *.tgz|*.tar.gz) tar -xzf "$file" ;; \
-    *.zip) apt-get update && apt-get install -y --no-install-recommends unzip && unzip -q "$file" ;; \
+    *.zip) unzip -q "$file" ;; \
     *) : ;; \
   esac; \
   bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)"; \
@@ -551,12 +587,12 @@ COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia
 COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/insomnia /opt/insomnia
 
 # ==============================================================================
-# Phase 11: Wireless & Packet Analysis
+# Phase 11: Wireless & Packet Analysis Tools
 # ==============================================================================
-# - wireshark: Network protocol analyzer
-# - tshark: Terminal-based Wireshark
-# - tcpdump: Packet capture utility
-# - aircrack-ng: 802.11 WEP/WPA cracking
+# - wireshark: network protocol analyzer
+# - tshark: terminal Wireshark analyzer
+# - tcpdump: packet capture utility
+# - aircrack-ng: 802.11 WEP/WPA cracking suite
 RUN apt-get install -y --no-install-recommends \
         wireshark \
         tshark \
@@ -566,14 +602,14 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 12: Exploitation Frameworks
 # ==============================================================================
-# - metasploit-framework: Penetration testing framework
+# - metasploit-framework: penetration testing framework
 RUN apt-get install -y --no-install-recommends \
         metasploit-framework
 
 # ==============================================================================
 # Phase 13: Runtime Security Agents
 # ==============================================================================
-# - falco: Runtime security monitoring
+# - falco: runtime threat detection for containers and hosts
 RUN install -d -m 0755 /usr/share/keyrings && \
     curl -fsSL https://falco.org/repo/falcosecurity-packages.asc \
       | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg && \
@@ -588,21 +624,19 @@ RUN install -d -m 0755 /usr/share/keyrings && \
 # ==============================================================================
 # Phase 14: Browser Agent Requirements
 # ==============================================================================
-# - chromium & chromium-driver: Headless browser and WebDriver
+# - chromium: headless-capable browser
+# - chromium-driver: WebDriver for Chromium
 RUN apt-get install -y --no-install-recommends \
       chromium \
       chromium-driver
 
 # ==============================================================================
 # Phase 15: Security Tool Repositories & Wrappers
-#   - CloudMapper code and venv are copied from the dedicated builder stage
-#   - Pacu via pipx on CPython 3.12 to avoid Python 3.13 C-API build issues
-# ==============================================================================
 # Bring CloudMapper code and its dedicated venv from the builder stage
 COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
 COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
 
-# Install system deps for Pacu (cffi may require libffi) and jq CLI; then install Pacu via pipx on Python 3.12
+# Install system deps for Pacu (cffi may require libffi); then install Pacu via pipx on Python 3.12
 RUN apt-get install -y --no-install-recommends libffi-dev \
  && pipx install --python /usr/local/bin/python3.12 git+https://github.com/RhinoSecurityLabs/pacu.git
 
@@ -625,20 +659,19 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
 # ==============================================================================
 # Phase 16: Cloud & Container Security Binaries
 # ==============================================================================
-# Trivy - Container vulnerability scanner
+# - trivy: container image vulnerability scanner
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
   | sh -s -- -b /usr/local/bin
 
-# docker-bench-security - Docker daemon configuration audit
+# - docker-bench-security: Docker daemon configuration audit
 RUN mkdir -p /opt/hexstrike/tools && \
     git clone --depth 1 https://github.com/docker/docker-bench-security.git /opt/hexstrike/tools/docker-bench-security && \
     rm -rf /opt/hexstrike/tools/docker-bench-security/.git && \
     printf '#!/bin/bash\nset -e\ncd /opt/hexstrike/tools/docker-bench-security\nexec ./docker-bench-security.sh "$@"\n' > /usr/local/bin/docker-bench-security && \
     chmod +x /usr/local/bin/docker-bench-security
 
-# - clairctl: Container vulnerability assessment CLI (only amd64/arm64)
-RUN set -eux; \
-    arch="$(dpkg --print-architecture)"; \
+# - clairctl: container vulnerability assessment CLI (amd64/arm64)
+RUN arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-amd64";; \
       arm64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-arm64";; \
@@ -648,9 +681,8 @@ RUN set -eux; \
     chmod 0755 /usr/local/bin/clairctl; \
     /usr/local/bin/clairctl --version
 
-# kube-bench - CIS Kubernetes benchmark auditing (official release archive)
-RUN set -eux; \
-    tmp=$(mktemp -d); cd "$tmp"; \
+# - kube-bench: CIS Kubernetes benchmark auditing
+RUN tmp=$(mktemp -d); cd "$tmp"; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64) suffix="amd64";; \
@@ -667,7 +699,7 @@ RUN set -eux; \
 # ==============================================================================
 # Phase 17: MCP Entry Points & Minimal Wrappers
 # ==============================================================================
-RUN set -eux; \
+RUN set -eu; \
     # CloudMapper wrapper: ensure execution via its dedicated venv
     printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' \
       > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
@@ -689,9 +721,9 @@ RUN set -eux; \
     printf '#!/bin/bash\nexec npx --yes graphql-voyager "$@"\n' \
       > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager && \
     \
-    printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=[\"patator\"]+sys.argv[1:]\nrunpy.run_path(\"/usr/share/patator/patator.py\", run_name=\"__main__\")\n' \
+    printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=["patator"]+sys.argv[1:]\nrunpy.run_path("/usr/share/patator/patator.py", run_name="__main__")\n' \
       > /usr/local/bin/patator && chmod +x /usr/local/bin/patator && \
-    printf '#!/usr/bin/env node\nrequire(\"/usr/lib/node_modules/social-analyzer/dist/index.js\");\n' \
+    printf '#!/usr/bin/env node\nrequire("/usr/lib/node_modules/social-analyzer/dist/index.js");\n' \
       > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
     \
     # Volatility name variants expected by the server
@@ -702,7 +734,7 @@ RUN set -eux; \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 && \
     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol && \
     \
-    # --- Compatibility aliases required by hexstrike_server.py ---
+    # Compatibility aliases required by hexstrike_server.py ---
     ln -sf /usr/bin/searchsploit                   /usr/local/bin/exploit-db && \
     ln -sf /usr/local/bin/newman                   /usr/local/bin/postman && \
     ln -sf /usr/bin/http                           /usr/local/bin/httpie && \
@@ -722,8 +754,8 @@ RUN set -eux; \
     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
     \
-    # hashcat-utils binary does not exist. Provide a real entrypoint name the server checks
-    printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package \"hashcat-utils\" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named \"hashcat-utils\". The server health-check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx \"$@\"\n' \
+    # hashcat-utils binary does not exist. Provide a real entry point the server checks
+    printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package "hashcat-utils" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named "hashcat-utils". The server health check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx "$@"\n' \
       > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
 
 # ==============================================================================
