@@ -232,6 +232,11 @@ RUN cd /tmp && \
 # - arp-scan: ARP network scanner
 # - samba-common-bin: Samba client utilities
 # - smbclient: SMB/CIFS client
+# - iproute2: provides `ip` (route/addr) used by wrappers
+# - iputils-ping: ICMP ping
+# - net-tools: legacy ifconfig/netstat (diagnostics)
+# - ethtool: NIC/link diagnostics
+# - traceroute: routing diagnostics
 RUN apt-get install -y --no-install-recommends \
         nmap \
         masscan \
@@ -253,7 +258,13 @@ RUN apt-get install -y --no-install-recommends \
         nbtscan \
         arp-scan \
         samba-common-bin \
-        smbclient
+        smbclient \
+        iproute2 \
+        iputils-ping \
+        net-tools \
+        ethtool \
+        traceroute
+
 
 # - rustscan: modern and fast port scanner
 RUN tmp="$(mktemp -d)"; cd "$tmp"; \
