@@ -18,7 +18,7 @@ export DOCKER_BUILDKIT=1
 
 # Use --no-cache to avoid using cached layers and ensure a consistent build
 # Use --pull to always attempt to pull a newer version of the base image if available
-docker build \
+sudo docker build \
   --tag "${IMAGE_TAG}" \
   --no-cache --force-rm --squash --pull \
   --file docker/Dockerfile . \

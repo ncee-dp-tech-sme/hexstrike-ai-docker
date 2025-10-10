@@ -19,18 +19,6 @@ services:
     
     # Image name and tag
     image: hexstrike-ai:v6.0
-    
-    # Network capabilities required for security tools
-    # NET_RAW: Required for raw socket operations (nmap, masscan, etc.)
-    # NET_ADMIN: Required for network interface manipulation
-    cap_add:
-      - NET_RAW
-      - NET_ADMIN
-
-    # Port mapping: Host:Container
-    # Exposes MCP server on host port 8888
-    ports:
-      - "8888:8888"
 
     # Environment variables (optional)
     environment:
@@ -52,26 +40,57 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    
+    # Give the container full host networking (required by many scanners/sniffers)
+    network_mode: "host"
 
-    # Network configuration (optional)
-    # Use host network for full network access - enable only if required.
-    # network_mode: "host"
+    # ==============================================================================
+    # PRIVILEGED MODE - Maximum Tool Compatibility (127 security tools)
+    # ==============================================================================
+    # Enabled to guarantee all pentesting tools work without capability issues.
+    # This includes: nmap, masscan, metasploit, wireshark, tcpdump, aircrack-ng,
+    # docker-bench, kube-hunter, falco, volatility, gdb, radare2, etc.
+    #
+    # Security Note: Safe in controlled pentesting environments with network_mode: host.
+    # For hardening, disable privileged and use cap_add below (may require testing).
+    # ==============================================================================
+    privileged: true
 
-    # Security options (optional - uncomment for stricter hardening if compatible)
-    # security_opt:
-    #   - no-new-privileges:true
-    # read_only: true            # may break tools needing write access to /opt/hexstrike
-    # tmpfs:
-    #   - /tmp:rw,exec,size=256m # scratch space if read_only=true
-    # cap_drop:
-    #   - ALL                    # start from no caps, then add back the needed ones
-    # user: "1000:1000"          # run as non-root if your tools allow it
-    # ulimits:
-    #   nofile: 65536
-    # sysctls:
-    #   net.ipv4.ping_group_range: "0 2147483647"
+    # ==============================================================================
+    # ALTERNATIVE: Fine-grained Capabilities (if privileged: false)
+    # ==============================================================================
+    # Uncomment these if you disable privileged mode and want granular control.
+    # Note: Some tools may still fail without privileged mode.
+    # ==============================================================================
+    # cap_add:
+    #   - NET_RAW           # Raw sockets (nmap -sS, masscan, tcpdump, wireshark)
+    #   - NET_ADMIN         # Network management (ip, ifconfig, airmon-ng, responder)
+    #   - NET_BIND_SERVICE  # Bind ports < 1024 (metasploit, zaproxy, burpsuite)
+    #   - NET_BROADCAST     # Broadcast packets (ARP scan, responder)
+    #   - SYS_ADMIN         # Mount, namespace, advanced operations (docker-bench, containers)
+    #   - SYS_PTRACE        # Debugging/tracing (gdb, strace, volatility)
+    #   - SYS_CHROOT        # Chroot operations (some exploitation tools)
+    #   - DAC_OVERRIDE      # Bypass file permission checks (forensics tools)
+    #   - DAC_READ_SEARCH   # Bypass directory read permission checks
+    #   - SETUID            # Set UID (some exploitation scenarios)
+    #   - SETGID            # Set GID (some exploitation scenarios)
+    #   - SETPCAP           # Set process capabilities
+    #   - SYS_MODULE        # Load kernel modules (advanced wireless tools)
+    #   - SYS_RAWIO         # Raw I/O (direct hardware access)
+    #   - IPC_LOCK          # Lock memory (prevent swapping sensitive data)
+    #   - SYS_NICE          # Change process priority
 
-# Network configuration (optional)
-# networks:
-#   hexstrike-network:
-#     driver: bridge
+    # Security knobs for RHEL/Alma SELinux compatibility
+    security_opt:
+      - label=disable       # Disable SELinux labeling inside container
+      - seccomp=unconfined  # Allow all syscalls (required for raw sockets and advanced tools)
+
+    # File descriptors & shared memory (Chromium/ZAP/Burp can need bigger /dev/shm)
+    ulimits:
+      nofile: 65536
+    shm_size: "1g"
+
+    # Optional devices (enable if needed for USB wireless cards or VPN testing)
+    # devices:
+    #   - "/dev/bus/usb:/dev/bus/usb"        # USB wireless adapters (airmon-ng, kismet)
+    #   - "/dev/net/tun:/dev/net/tun"        # TUN/TAP for VPN testing

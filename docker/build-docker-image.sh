@@ -15,7 +15,7 @@ echo "[+] Building image with docker | log: ${LOG_FILE}" >&2
 # Enable BuildKit if Docker supports it; harmless if ignored.
 export DOCKER_BUILDKIT=1
 
-docker build \
+sudo docker build \
   --tag "${IMAGE_TAG}" \
   --file docker/Dockerfile . \
   2>&1 | tee "${LOG_FILE}"
