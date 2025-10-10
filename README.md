@@ -129,7 +129,7 @@ pip3 install -r requirements.txt
 
 ```
 
-### 🐳 Docker Installation (Recommended)
+### 🐳 Docker Installation
 
 **Quick start with pre-built environment including all 150+ security tools:**
 
@@ -139,13 +139,11 @@ git clone https://github.com/0x4m4/hexstrike-ai.git
 cd hexstrike-ai
 
 # 2. Build Docker image
-./scripts/build-docker-image.sh
+./docker/build-docker-image.sh
 
-# 3. Run MCP server
-./scripts/run-docker-mcp-server.sh
+# 3. STart MCP server
+./docker/start-docker-mcp-server.sh
 
-# Alternative: using Docker Compose
-docker-compose -f docker/docker-compose.yml up -d
 ```
 
 **Verify installation:**
@@ -162,8 +160,6 @@ curl http://localhost:8888/health
 - ✅ Isolated from host system
 - ✅ Includes core recon/web/OSINT tooling (nmap, masscan, gobuster, nikto, recon-ng, sherlock)
 - ✅ Cloud/container scanners (trivy, docker-bench-security) ready to run
-
-**For detailed Docker documentation, see [Docker Build Guide](./docker/DOCKER-README.md)**
 
 ---
 

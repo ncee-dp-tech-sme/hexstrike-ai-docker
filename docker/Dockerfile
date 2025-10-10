@@ -103,6 +103,8 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # - xz-utils: XZ compression utilities
 # - httpie: user-friendly HTTP client
 # - wordlists: common wordlists for security testing
+# - p7zip-full: 7-Zip archiver
+# - binutils: binary utilities
 RUN set -eu; \
     apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
@@ -116,7 +118,9 @@ RUN set -eu; \
         wordlists \
         httpie \
         jq \
-        unzip
+        unzip \
+        p7zip-full \
+        binutils
 
 # ==============================================================================
 # Phase 2: Language Runtimes and Build Tools
@@ -163,6 +167,8 @@ COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
+# Production WSGI server for better performance than Flask dev server
+RUN pip install --no-cache-dir gunicorn
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
@@ -448,10 +454,8 @@ RUN apt-get install -y --no-install-recommends \
 # - bulk-extractor: bulk data extractor for forensics
 # - smbmap: SMB share enumerator
 # - zbar-tools: barcode and QR decoding
-# - p7zip-full: 7-Zip archiver
 # - apktool: Android APK analysis
 # - android-tools-adb: Android Debug Bridge
-# - binutils: binary utilities
 # - xxd: hex dump utility
 RUN apt-get install -y --no-install-recommends \
         gdb \
@@ -471,10 +475,8 @@ RUN apt-get install -y --no-install-recommends \
         bulk-extractor \
         smbmap \
         zbar-tools \
-        p7zip-full \
         apktool \
         android-tools-adb \
-        binutils \
         xxd
 
 # Python-based helpers
@@ -785,5 +787,5 @@ EXPOSE 8888
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8888/health || exit 1
 
-# Start HexStrike MCP server using virtual environment Python
-CMD ["python3", "hexstrike_server.py"]
+# Start HexStrike MCP server with Gunicorn WSGI server
+CMD ["gunicorn", "--bind", "0.0.0.0:8888", "--workers", "2", "--threads", "8", "--timeout", "3600", "--graceful-timeout", "120", "--keep-alive", "60", "hexstrike_server:app"]

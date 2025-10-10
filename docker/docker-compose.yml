@@ -20,10 +20,11 @@ services:
     # Image name and tag
     image: hexstrike-ai:v6.0
 
-    # Environment variables (optional)
+    # Environment variables
     environment:
       - PYTHONUNBUFFERED=1
-      # - DEBUG_MODE=false
+      - COMMAND_TIMEOUT=3600
+      # - DEBUG_MODE=true
       # - MCP_PORT=8888
 
     # Volumes: persist only logs
@@ -52,7 +53,7 @@ services:
     # docker-bench, kube-hunter, falco, volatility, gdb, radare2, etc.
     #
     # Security Note: Safe in controlled pentesting environments with network_mode: host.
-    # For hardening, disable privileged and use cap_add below (may require testing).
+    # For hardening, disable privileged and use cap_add below (require testing).
     # ==============================================================================
     privileged: true
 
