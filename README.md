@@ -18,8 +18,6 @@
 
 [📋 What's New](#whats-new-in-v60) • [🏗️ Architecture](#architecture-overview) • [🚀 Installation](#installation) • [🛠️ Features](#features) • [🤖 AI Agents](#ai-agents) • [📡 API Reference](#api-reference)
 
-• [🐳 Docker Build Instructions](./docker/DOCKER-README.md)
-
 </div>
 
 ---
@@ -132,6 +130,7 @@ pip3 install -r requirements.txt
 ### 🐳 Docker Installation
 
 **Quick start with pre-built environment including all 150+ security tools:**
+Note: the scripts are executed with sudo and the container is witg privileged enabled to guarantee all pentesting tools work without capability issues.
 
 ```bash
 # 1. Clone the repository
@@ -151,15 +150,6 @@ cd hexstrike-ai
 # Test health endpoint
 curl http://localhost:8888/health
 ```
-
-**Advantages:**
-- ✅ All 150+ security tools pre-installed
-- ✅ Consistent environment across systems
-- ✅ No dependency conflicts
-- ✅ Easy cleanup and updates
-- ✅ Isolated from host system
-- ✅ Includes core recon/web/OSINT tooling (nmap, masscan, gobuster, nikto, recon-ng, sherlock)
-- ✅ Cloud/container scanners (trivy, docker-bench-security) ready to run
 
 ---
 
