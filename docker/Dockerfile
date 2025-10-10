@@ -735,7 +735,7 @@ RUN set -eu; \
     \
     printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=["patator"]+sys.argv[1:]\nrunpy.run_path("/usr/share/patator/patator.py", run_name="__main__")\n' \
       > /usr/local/bin/patator && chmod +x /usr/local/bin/patator && \
-    printf '#!/usr/bin/env node\nrequire("/usr/lib/node_modules/social-analyzer/dist/index.js");\n' \
+    printf '#!/usr/bin/env node\nconst r=require("child_process").execSync("npm root -g").toString().trim();require(r+"/social-analyzer/index.js");\n' \
       > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
     \
     # Volatility name variants expected by the server
