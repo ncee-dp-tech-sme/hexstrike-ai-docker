@@ -81,7 +81,8 @@ RUN mkdir -p /opt/insomnia-artifacts/node18 && \
 # ------------------------------------------------------------------------------
 # Stage D: Final - Kali Linux + All Tools & Runtimes
 # ------------------------------------------------------------------------------
-FROM docker.io/kalilinux/kali-rolling:latest
+FROM docker.io/kalilinux/kali-last-release:latest
+
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/hexstrike
@@ -167,8 +168,6 @@ COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
-# Production WSGI server for better performance than Flask dev server
-RUN pip install --no-cache-dir gunicorn
 # ==============================================================================
 # Phase 5: Cloud & Container Security (Python CLIs)
 # ==============================================================================
@@ -280,7 +279,7 @@ RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   curl -fsSL -o rustscan.deb.zip "$url"; \
   unzip -q rustscan.deb.zip; \
   deb="$(printf '%s\n' rustscan*.deb | head -n1)"; \
-  dpkg -i "$deb" || apt-get -f install -y; \
+  dpkg -i "$deb" || apt-get -f install -y --no-install-recommends; \
   cd /; rm -rf "$tmp"
 
 # ==============================================================================
@@ -779,6 +778,8 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # ==============================================================================
 # Phase 19: Runtime Configuration
 # ==============================================================================
+# Production WSGI server for better performance than Flask dev server
+RUN pip install --no-cache-dir gunicorn
 
 # Expose MCP server port
 EXPOSE 8888
@@ -788,4 +789,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8888/health || exit 1
 
 # Start HexStrike MCP server with Gunicorn WSGI server
-CMD ["gunicorn", "--bind", "0.0.0.0:8888", "--workers", "2", "--threads", "8", "--timeout", "3600", "--graceful-timeout", "120", "--keep-alive", "60", "hexstrike_server:app"]
+CMD ["/opt/hexstrike/venv/bin/gunicorn", "--bind", "0.0.0.0:8888", "--workers", "2", "--threads", "8", "--timeout", "3600", "--graceful-timeout", "120", "--keep-alive", "60", "hexstrike_server:app"]
+
