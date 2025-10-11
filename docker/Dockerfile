@@ -159,17 +159,9 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_PYTHON_VERSION_WARNING=1
 ENV PATH="${PATH}:/root/.local/bin"
 
-# ==============================================================================
-# Phase 4: Core Python Dependencies and MCP Server
-# ==============================================================================
-# Copy requirements.txt first for Docker layer caching optimization
-COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
-
-# Install core Python dependencies into virtual environment
-RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
 # ==============================================================================
-# Phase 5: Cloud & Container Security (Python CLIs)
+# Phase 4: Cloud & Container Security (Python CLIs)
 # ==============================================================================
 # - ansible: automation engine for configuration and orchestration
 RUN apt-get install -y --no-install-recommends \
@@ -214,7 +206,7 @@ RUN cd /tmp && \
     rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # ==============================================================================
-# Phase 6: Network & Reconnaissance Tools
+# Phase 5: Network & Reconnaissance Tools
 # ==============================================================================
 # - nmap: network exploration and security auditing
 # - masscan: high-speed port scanner
@@ -270,7 +262,6 @@ RUN apt-get install -y --no-install-recommends \
         ethtool \
         traceroute
 
-
 # - rustscan: modern and fast port scanner
 RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
@@ -283,7 +274,7 @@ RUN tmp="$(mktemp -d)"; cd "$tmp"; \
   cd /; rm -rf "$tmp"
 
 # ==============================================================================
-# Phase 7: Web Application Security Tools
+# Phase 6: Web Application Security Tools
 # ==============================================================================
 # - gobuster: directory and DNS enumeration
 # - feroxbuster: recursive content discovery
@@ -409,7 +400,7 @@ RUN set -euo pipefail; \
 
 
 # ==============================================================================
-# Phase 8: Authentication & Password Security
+# Phase 7: Authentication & Password Security
 # ==============================================================================
 # - hydra: network login cracker
 # - john: password cracker
@@ -434,7 +425,7 @@ RUN apt-get install -y --no-install-recommends \
         hashcat-utils
 
 # ==============================================================================
-# Phase 9: Binary & Forensics Tools
+# Phase 8: Binary & Forensics Tools
 # ==============================================================================
 # - gdb: GNU debugger
 # - radare2: reverse engineering framework
@@ -519,7 +510,7 @@ RUN pip install --no-cache-dir hashpumpy && \
 > /usr/local/bin/hashpump && chmod +x /usr/local/bin/hashpump
 
 # ==============================================================================
-# Phase 10: OSINT & Intelligence Tools
+# Phase 9: OSINT & Intelligence Tools
 # ==============================================================================
 # - exploitdb: exploit database search client
 # - kismet: wireless network detector and sniffer
@@ -599,7 +590,7 @@ COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia
 COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/insomnia /opt/insomnia
 
 # ==============================================================================
-# Phase 11: Wireless & Packet Analysis Tools
+# Phase 10: Wireless & Packet Analysis Tools
 # ==============================================================================
 # - wireshark: network protocol analyzer
 # - tshark: terminal Wireshark analyzer
@@ -612,14 +603,14 @@ RUN apt-get install -y --no-install-recommends \
         aircrack-ng
 
 # ==============================================================================
-# Phase 12: Exploitation Frameworks
+# Phase 11: Exploitation Frameworks
 # ==============================================================================
 # - metasploit-framework: penetration testing framework
 RUN apt-get install -y --no-install-recommends \
         metasploit-framework
 
 # ==============================================================================
-# Phase 13: Runtime Security Agents
+# Phase 12: Runtime Security Agents
 # ==============================================================================
 # - falco: runtime threat detection for containers and hosts
 RUN install -d -m 0755 /usr/share/keyrings && \
@@ -634,7 +625,7 @@ RUN install -d -m 0755 /usr/share/keyrings && \
     cd / && rm -rf /tmp/falco
 
 # ==============================================================================
-# Phase 14: Browser Agent Requirements
+# Phase 13: Browser Agent Requirements
 # ==============================================================================
 # - chromium: headless-capable browser
 # - chromium-driver: WebDriver for Chromium
@@ -643,7 +634,7 @@ RUN apt-get install -y --no-install-recommends \
       chromium-driver
 
 # ==============================================================================
-# Phase 15: Security Tool Repositories & Wrappers
+# Phase 14: Security Tool Repositories & Wrappers
 # Bring CloudMapper code and its dedicated venv from the builder stage
 COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
 COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
@@ -669,7 +660,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
 RUN pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
 
 # ==============================================================================
-# Phase 16: Cloud & Container Security Binaries
+# Phase 15: Cloud & Container Security Binaries
 # ==============================================================================
 # - trivy: container image vulnerability scanner
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
@@ -709,7 +700,7 @@ RUN tmp=$(mktemp -d); cd "$tmp"; \
     cd /; rm -rf "$tmp"
 
 # ==============================================================================
-# Phase 17: MCP Entry Points & Minimal Wrappers
+# Phase 16: MCP Entry Points & Minimal Wrappers
 # ==============================================================================
 RUN set -eu; \
     # CloudMapper wrapper: ensure execution via its dedicated venv
@@ -771,9 +762,18 @@ RUN set -eu; \
       > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
 
 # ==============================================================================
-# Phase 18: Image Cleanup
+# Phase 17: Image Cleanup
 # ==============================================================================
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ==============================================================================
+# Phase 18: Core Python Dependencies and MCP Server
+# ==============================================================================
+# Copy requirements.txt first for Docker layer caching optimization
+COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
+
+# Install core Python dependencies into virtual environment
+RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 
 # ==============================================================================
 # Phase 19: Runtime Configuration

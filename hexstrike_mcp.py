@@ -421,7 +421,7 @@ def setup_mcp_server(hexstrike_client: HexStrikeClient) -> FastMCP:
     # ============================================================================
 
     @mcp.tool()
-    def prowler_scan(provider: str = "aws", profile: str = "default", region: str = "", checks: str = "", output_dir: str = "/tmp/prowler_output", output_format: str = "json", additional_args: str = "") -> Dict[str, Any]:
+    def prowler_scan(provider: str = "aws", profile: str = "default", region: str = "", checks: str = "", output_dir: str = "/tmp/prowler_output", output_format: str = "json-ocsf", additional_args: str = "") -> Dict[str, Any]:
         """
         Execute Prowler for comprehensive cloud security assessment.
 
@@ -2674,46 +2674,56 @@ def setup_mcp_server(hexstrike_client: HexStrikeClient) -> FastMCP:
             logger.error(f"❌ Dalfox XSS scan failed")
         return result
 
-    @mcp.tool()
-    def httpx_probe(target: str, probe: bool = True, tech_detect: bool = False,
-                   status_code: bool = False, content_length: bool = False,
-                   title: bool = False, web_server: bool = False, threads: int = 50,
-                   additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute httpx for fast HTTP probing and technology detection.
+        @mcp.tool()
+        def httpx_probe(
+            target: str = "",
+            target_file: str = "",
+            probe: bool = True,
+            tech_detect: bool = False,
+            status_code: bool = False,
+            content_length: bool = False,
+            title: bool = False,
+            web_server: bool = False,
+            threads: int = 50,
+            additional_args: str = ""
+        ) -> Dict[str, Any]:
+            """
+            Execute httpx for fast HTTP probing and technology detection.
 
-        Args:
-            target: Target file or single URL
-            probe: Enable probing
-            tech_detect: Enable technology detection
-            status_code: Show status codes
-            content_length: Show content length
-            title: Show page titles
-            web_server: Show web server
-            threads: Number of threads
-            additional_args: Additional httpx arguments
+            Args:
+                target: Single URL or path to list file
+                target_file: Explicit list file (takes precedence over 'target' when provided)
+                probe: Enable probing (-probe)
+                tech_detect: Technology detection (-tech-detect)
+                status_code: Show status codes (-sc)
+                content_length: Show content length (-cl)
+                title: Show titles (-title)
+                web_server: Show web server (-server)
+                threads: Number of threads (-t)
+                additional_args: Additional httpx arguments
 
-        Returns:
-            Fast HTTP probing results with technology detection
-        """
-        data = {
-            "target": target,
-            "probe": probe,
-            "tech_detect": tech_detect,
-            "status_code": status_code,
-            "content_length": content_length,
-            "title": title,
-            "web_server": web_server,
-            "threads": threads,
-            "additional_args": additional_args
-        }
-        logger.info(f"🌍 Starting httpx probe: {target}")
-        result = hexstrike_client.safe_post("api/tools/httpx", data)
-        if result.get("success"):
-            logger.info(f"✅ httpx probe completed for {target}")
-        else:
-            logger.error(f"❌ httpx probe failed for {target}")
-        return result
+            Returns:
+                Fast HTTP probing results with technology detection
+            """
+            data = {
+                "target": target,
+                "target_file": target_file,
+                "probe": probe,
+                "tech_detect": tech_detect,
+                "status_code": status_code,
+                "content_length": content_length,
+                "title": title,
+                "web_server": web_server,
+                "threads": threads,
+                "additional_args": additional_args,
+            }
+            logger.info(f"🌍 Starting httpx probe: {target_file or target}")
+            result = hexstrike_client.safe_post("api/tools/httpx", data)
+            if result.get("success"):
+                logger.info("✅ httpx probe completed")
+            else:
+                logger.error("❌ httpx probe failed")
+            return result
 
     @mcp.tool()
     def anew_data_processing(input_data: str, output_file: str = "",
@@ -3388,42 +3398,6 @@ def setup_mcp_server(hexstrike_client: HexStrikeClient) -> FastMCP:
             logger.info(f"✅ Hakrawler crawling completed")
         else:
             logger.error(f"❌ Hakrawler crawling failed")
-        return result
-
-    @mcp.tool()
-    def httpx_probe(targets: str = "", target_file: str = "", ports: str = "", methods: str = "GET", status_code: str = "", content_length: bool = False, output_file: str = "", additional_args: str = "") -> Dict[str, Any]:
-        """
-        Execute HTTPx for HTTP probing with enhanced logging.
-
-        Args:
-            targets: Target URLs or IPs
-            target_file: File containing targets
-            ports: Ports to probe
-            methods: HTTP methods to use
-            status_code: Filter by status code
-            content_length: Show content length
-            output_file: Output file path
-            additional_args: Additional HTTPx arguments
-
-        Returns:
-            HTTP probing results
-        """
-        data = {
-            "targets": targets,
-            "target_file": target_file,
-            "ports": ports,
-            "methods": methods,
-            "status_code": status_code,
-            "content_length": content_length,
-            "output_file": output_file,
-            "additional_args": additional_args
-        }
-        logger.info(f"🌐 Starting HTTPx probing")
-        result = hexstrike_client.safe_post("api/tools/httpx", data)
-        if result.get("success"):
-            logger.info(f"✅ HTTPx probing completed")
-        else:
-            logger.error(f"❌ HTTPx probing failed")
         return result
 
     @mcp.tool()

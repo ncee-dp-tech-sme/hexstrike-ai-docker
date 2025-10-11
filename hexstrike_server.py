@@ -9093,14 +9093,18 @@ def health_check():
         password_tools + binary_tools + forensics_tools + cloud_tools +
         osint_tools + exploitation_tools + api_tools + wireless_tools + additional_tools
     )
+    # De-duplicate combined tool list to avoid inflated totals when a tool appears in multiple categories
+    unique_tools = sorted(set(all_tools))
     tools_status = {}
 
-    for tool in all_tools:
+    # Iterate once over unique tool names
+    for tool in unique_tools:
         try:
             result = execute_command(f"which {tool}", use_cache=True)
             tools_status[tool] = result["success"]
-        except:
+        except Exception:
             tools_status[tool] = False
+
 
     all_essential_tools_available = all(tools_status[tool] for tool in essential_tools)
 
@@ -9126,8 +9130,8 @@ def health_check():
         "version": "6.0.0",
         "tools_status": tools_status,
         "all_essential_tools_available": all_essential_tools_available,
-        "total_tools_available": sum(1 for tool, available in tools_status.items() if available),
-        "total_tools_count": len(all_tools),
+        "total_tools_available": sum(1 for _, available in tools_status.items() if available),
+        "total_tools_count": len(unique_tools),
         "category_stats": category_stats,
         "cache_stats": cache.get_stats(),
         "telemetry": telemetry.get_stats(),
@@ -10496,7 +10500,7 @@ def prowler():
         region = params.get("region", "")
         checks = params.get("checks", "")
         output_dir = params.get("output_dir", "/tmp/prowler_output")
-        output_format = params.get("output_format", "json")
+        output_format = params.get("output_format", "json-ocsf")
         additional_args = params.get("additional_args", "")
 
         # Ensure output directory exists
@@ -10514,7 +10518,7 @@ def prowler():
             command += f" --checks {checks}"
 
         command += f" --output-directory {output_dir}"
-        command += f" --output-format {output_format}"
+        command += f" --output-formats {output_format}"
 
         if additional_args:
             command += f" {additional_args}"
@@ -13138,6 +13142,8 @@ def httpx():
     try:
         params = request.json
         target = params.get("target", "")
+        target_file = params.get("target_file", "")
+        url = params.get("url", "")
         probe = params.get("probe", True)
         tech_detect = params.get("tech_detect", False)
         status_code = params.get("status_code", False)
@@ -13147,11 +13153,18 @@ def httpx():
         threads = params.get("threads", 50)
         additional_args = params.get("additional_args", "")
 
-        if not target:
+        # Accept either a list file (-l) or a single URL (-u)
+        if target_file:
+            command = f"httpx -l {target_file} -t {threads}"
+        elif target and (target.startswith("http://") or target.startswith("https://")):
+            command = f"httpx -u {target} -t {threads}"
+        elif target:
+            command = f"httpx -l {target} -t {threads}"
+        elif url:
+            command = f"httpx -u {url} -t {threads}"
+        else:
             logger.warning("🌐 httpx called without target parameter")
-            return jsonify({"error": "Target parameter is required"}), 400
-
-        command = f"httpx -l {target} -t {threads}"
+            return jsonify({"error": "Target parameter is required (target_file or target/url)"}), 400
 
         if probe:
             command += " -probe"
