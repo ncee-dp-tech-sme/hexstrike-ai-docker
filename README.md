@@ -149,32 +149,39 @@ cd hexstrike-ai
 # Health endpoint
 curl http://localhost:8888/health
 ```
+### Update tool caches (on demand, safe to run anytime)
 
-**Update tool caches (on demand, safe to run anytime)**
-The server starts immediately; a one‑shot background prewarm runs automatically.
-When you want to refresh caches explicitly (e.g., before a batch of scans):
+The server starts immediately; a one-shot background warm-up runs automatically.
+To refresh caches explicitly (e.g., before a batch of scans):
 
 ```bash
-# From the host, inside the running container:
-docker compose -f docker/docker-compose.yml exec hexstrike-mcp \
-  sh -lc 'hexstrike-update-caches && tail -n 50 /opt/hexstrike/maintenance/updates.log'
+# Docker
+docker compose -f docker/docker-compose.yml exec hexstrike-mcp-server \
+  /usr/local/bin/update-tools-databases.sh
 ```
 
-**What gets updated**
+#### What gets updated
 
 * WPScan vulnerability DB
 * Trivy DB
 * Nuclei templates
-* `rockyou.txt` (if present)
+* ExploitDB (searchsploit)
+* Nikto signatures
+* Nmap NSE script database (`script.db`)
+* OWASP ZAP add-ons
 
-**Where data is persisted** (host → container)
+#### Where data is persisted (host → container)
 
 * `./data/trivy` → `/root/.cache/trivy`
-* `./data/wpscan` → `/root/.cache/wpscan/db`
+* `./data/wpscan` → `/root/.wpscan/db`
 * `./data/nuclei-templates` → `/root/nuclei-templates`
 * `./data/amass` → `/root/.config/amass`
 * `./data/msf` → `/root/.msf4`
-* `./data/postgres` → `/var/lib/postgresql/data` (Clair/MSF DB when local Postgres is enabled)
+* `./data/exploitdb` → `/usr/share/exploitdb`
+* `./data/nikto` → `/var/lib/nikto`
+* `./data/zap` → `/root/.ZAP`
+* `./data/postgres` → `/var/lib/postgresql` (used by Clair and optional Metasploit DBs)
+
 
 ### Installation and Setting Up Guide for various AI Clients:
 

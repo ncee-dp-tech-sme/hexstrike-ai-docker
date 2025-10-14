@@ -5,6 +5,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
 
 cd $SCRIPT_DIR
 
+# create host-side folders used by docker-compose bind mounts
 mkdir -p \
   "../logs" \
   "../data/trivy" \

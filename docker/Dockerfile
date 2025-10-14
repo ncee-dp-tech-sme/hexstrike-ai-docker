@@ -316,15 +316,6 @@ RUN apt-get install -y --no-install-recommends \
         burpsuite \
         zaproxy
 
-# WPScan wrapper: ensure DB exists, then exec real binary
-RUN printf '%s\n' '#!/bin/bash' \
-'DB="${HOME}/.cache/wpscan/db/main.db"' \
-'if [ ! -f "$DB" ]; then' \
-'  /usr/bin/wpscan --update >/dev/null 2>&1 || true' \
-'fi' \
-'exec /usr/bin/wpscan "$@"' \
-> /usr/local/bin/wpscan && chmod +x /usr/local/bin/wpscan
-
 # - katana: next-generation web crawler and spider
 RUN set -euo pipefail; \
   tmp="$(mktemp -d)"; cd "$tmp"; \
@@ -811,9 +802,10 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 # ==============================================================================
 
 VOLUME ["/root/.cache/trivy", \
-        "/root/.cache/wpscan/db", \
+        "/root/.wpscan/db",   \
         "/root/.config/amass", \
-        "/root/nuclei-templates"]
+        "/root/nuclei-templates", \
+        "/root/.msf4"]
 
 # Production WSGI server for better performance than Flask dev server
 RUN pip install --no-cache-dir gunicorn
