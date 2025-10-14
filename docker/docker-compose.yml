@@ -5,9 +5,12 @@
 # with proper network capabilities and volume mounts
 # ==============================================================================
 
-version: '3.8'
+version: "3.8"
 
 services:
+  # ----------------------------------------------------------------------------
+  # HexStrike MCP Server
+  # ----------------------------------------------------------------------------
   hexstrike-mcp-server:
     # Build configuration
     build:
@@ -16,7 +19,7 @@ services:
 
     # Container name for easy reference
     container_name: hexstrike-mcp-server
-    
+
     # Image name and tag
     image: hexstrike-ai:v6.0
 
@@ -26,14 +29,11 @@ services:
       - COMMAND_TIMEOUT=3600
       # - DEBUG_MODE=true
       # - MCP_PORT=8888
-
-      # Clair API endpoint. Defaults to local Clair bound on 127.0.0.1:8080
-      - CLAIR_ADDR=${CLAIR_ADDR:-http://127.0.0.1:8080}
-
-      # Metasploit DB URL (optional). Example: postgresql://msf:msf@db.example.org:5432/msf
+      # Clair API (Clair listens on localhost:6060 via host networking)
+      - CLAIR_ADDR=http://127.0.0.1:6060
+      # Optional: Metasploit DB URL (empty = disabled)
       - MSF_DB_URL=${MSF_DB_URL:-}
 
-    # Volumes: persist logs and tools cache
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
       - ../data/trivy:/root/.cache/trivy:rw,Z
@@ -52,7 +52,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
-    
+
     # Give the container full host networking (required by many scanners/sniffers)
     network_mode: "host"
 
@@ -114,7 +114,7 @@ services:
   # - External DB: change the connstring in ./config/clair-config.yaml to point to your external PostgreSQL
   # ------------------------------------------------------------------------------
   hexstrike-clair:
-    image: quay.io/projectquay/clair:latest
+    image: quay.io/projectquay/clair
     pull_policy: always
     container_name: hexstrike-clair
     restart: unless-stopped
@@ -122,22 +122,21 @@ services:
       hexstrike-postgres:
         condition: service_healthy
     environment:
-      CLAIR_CONF: /etc/clair/config.yaml:ro,Z
+      - CLAIR_CONF=/etc/clair/config.yaml
     volumes:
       - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
-    # no published ports and bound to 127.0.0.1
+    # no published ports; host networking + localhost bind keeps it private
     network_mode: "host"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6060/health"]
       interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 20s
 
-  # ------------------------------------------------------------------------------
-  # PostgreSQL 17 - Local database for Clair and optional Metasploit
-  # - External DB: you can skip this service and point Clair to your external DB
-  # ------------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 18 — local DB for Clair (and optional Metasploit)
+  # ----------------------------------------------------------------------------
   hexstrike-postgres:
     image: docker.io/postgres:18
     pull_policy: always
@@ -146,14 +145,16 @@ services:
     user: "999:999"
     environment:
       POSTGRES_PASSWORD: postgres
-    # no published ports and bind to 127.0.0.1 only
+    # Bind Postgres only to localhost on host network
     network_mode: "host"
     command: ["-c", "listen_addresses=127.0.0.1"]
     volumes:
+      # DB init scripts live here (create users/databases, etc.)
       - ./config/db-init:/docker-entrypoint-initdb.d:ro,Z
+      # Mount the parent; the image manages the child path internally
       - ../data/postgres:/var/lib/postgresql:Z,U
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -p 5432 -d clair"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
