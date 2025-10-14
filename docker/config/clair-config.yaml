@@ -1,38 +1,19 @@
 # Clair v4 minimal configuration — bound to localhost (no external exposure)
-http_listen_addr: "127.0.0.1:6060"
-introspection_addr: "127.0.0.1:6061"
-
-log:
-  level: "info"
-  format: "text"
+http_listen_addr: "127.0.0.1:8080"    # API (used by clairctl/MCP)
+introspection_addr: "127.0.0.1:6060"  # /healthz, /metrics
 
 indexer:
-  # Local PostgreSQL on the host network
-  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable statement_timeout=600000"
-  scanlock_retry: 10
-  layer_scan_concurrency: 5
+  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable"
   migrations: true
 
 matcher:
-  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable statement_timeout=600000"
-  indexer_addr: "http://127.0.0.1:6060"
-  run: true
-  max_conn_pool: 10
-  disable_fetchers: false
+  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable"
+  indexer_addr: "http://127.0.0.1:8080"
+  migrations: true
 
 notifier:
-  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable statement_timeout=600000"
-  migrations: false
-  delivery_interval: 1m
-  poll_interval: 5m
+  connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable"
+  migrations: true
 
 updaters:
-  sets:
-    - "alpine"
-    - "aws"
-    - "rhel"
-    - "debian"
-    - "ubuntu"
-    - "oracle"
-    - "photon"
-    - "suse"
+  sets: ["alpine", "aws", "rhel", "debian", "ubuntu", "oracle", "photon", "suse"]

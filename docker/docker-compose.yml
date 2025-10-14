@@ -29,8 +29,8 @@ services:
       - COMMAND_TIMEOUT=3600
       # - DEBUG_MODE=true
       # - MCP_PORT=8888
-      # Clair API (Clair listens on localhost:6060 via host networking)
-      - CLAIR_ADDR=http://127.0.0.1:6060
+      # Clair API
+      - CLAIR_ADDR=http://127.0.0.1:8080
       # Optional: Metasploit DB URL (empty = disabled)
       - MSF_DB_URL=${MSF_DB_URL:-}
 
@@ -114,25 +114,22 @@ services:
   # - External DB: change the connstring in ./config/clair-config.yaml to point to your external PostgreSQL
   # ------------------------------------------------------------------------------
   hexstrike-clair:
-    image: quay.io/projectquay/clair
-    pull_policy: always
+    image: quay.io/projectquay/clair:4.8.0
     container_name: hexstrike-clair
     restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
+    command: ["-conf=/etc/clair/config.yaml"]
     depends_on:
       hexstrike-postgres:
         condition: service_healthy
-    environment:
-      - CLAIR_CONF=/etc/clair/config.yaml
-    volumes:
-      - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
-    # no published ports; host networking + localhost bind keeps it private
-    network_mode: "host"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6060/health"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6060/healthz"]
       interval: 30s
       timeout: 5s
-      retries: 10
-      start_period: 20s
+      retries: 5
+      start_period: 15s
 
   # ----------------------------------------------------------------------------
   # PostgreSQL 18 — local DB for Clair (and optional Metasploit)
