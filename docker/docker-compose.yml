@@ -31,8 +31,8 @@ services:
       # - MCP_PORT=8888
       # Clair API
       - CLAIR_ADDR=http://127.0.0.1:8080
-      # Optional: Metasploit DB URL (empty = disabled)
-      - MSF_DB_URL=${MSF_DB_URL:-}
+      # Metasploit DB URL (empty = disabled)
+      - MSF_DB_URL=postgresql://msf:msf@127.0.0.1:5432/msf
 
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z

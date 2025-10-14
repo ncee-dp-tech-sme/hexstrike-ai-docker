@@ -793,7 +793,9 @@ RUN set -eu; \
 # ==============================================================================
 # Phase 17: Image Cleanup
 # ==============================================================================
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    # Hide Message from Kali developers on login
+    touch ~/.hushlogin
 
 # ==============================================================================
 # Phase 18: Core Python Dependencies and MCP Server
