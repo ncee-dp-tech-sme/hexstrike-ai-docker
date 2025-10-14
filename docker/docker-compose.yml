@@ -27,9 +27,20 @@ services:
       # - DEBUG_MODE=true
       # - MCP_PORT=8888
 
-    # Volumes: persist only logs
+      # Clair API endpoint. Defaults to local Clair bound on 127.0.0.1:8080
+      - CLAIR_ADDR=${CLAIR_ADDR:-http://127.0.0.1:8080}
+
+      # Metasploit DB URL (optional). Example: postgresql://msf:msf@db.example.org:5432/msf
+      - MSF_DB_URL=${MSF_DB_URL:-}
+
+    # Volumes: persist logs and tools cache
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
+      - ../data/trivy:/root/.cache/trivy:rw,Z
+      - ../data/wpscan:/root/.cache/wpscan/db:rw,Z
+      - ../data/nuclei-templates:/root/nuclei-templates:rw,Z
+      - ../data/amass:/root/.config/amass:rw,Z
+      - ../data/msf:/root/.msf4:rw,Z
 
     # Restart policy suitable for production
     restart: unless-stopped
@@ -83,8 +94,9 @@ services:
 
     # Security knobs for RHEL/Alma SELinux compatibility
     security_opt:
-      - label=disable       # Disable SELinux labeling inside container
       - seccomp=unconfined  # Allow all syscalls (required for raw sockets and advanced tools)
+      - apparmor=unconfined # Disable AppArmor on Debian/Ubuntu hosts
+      - label=disable       # Disable SELinux labeling inside container for CentOS/RHEL hosts
 
     # File descriptors & shared memory (Chromium/ZAP/Burp can need bigger /dev/shm)
     ulimits:
@@ -95,3 +107,53 @@ services:
     # devices:
     #   - "/dev/bus/usb:/dev/bus/usb"        # USB wireless adapters (airmon-ng, kismet)
     #   - "/dev/net/tun:/dev/net/tun"        # TUN/TAP for VPN testing
+
+  # ------------------------------------------------------------------------------
+  # Clair v4 - Container image and vulnerability scanning API
+  # - Default: connect to local Postgres service "hexstrike-postgres"
+  # - External DB: change the connstring in ./config/clair-config.yaml to point to your external PostgreSQL
+  # ------------------------------------------------------------------------------
+  hexstrike-clair:
+    image: quay.io/projectquay/clair:latest
+    pull_policy: always
+    container_name: hexstrike-clair
+    restart: unless-stopped
+    depends_on:
+      hexstrike-postgres:
+        condition: service_healthy
+    environment:
+      CLAIR_CONF: /etc/clair/config.yaml:ro,Z
+    volumes:
+      - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
+    # no published ports and bound to 127.0.0.1
+    network_mode: "host"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:6060/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ------------------------------------------------------------------------------
+  # PostgreSQL 17 - Local database for Clair and optional Metasploit
+  # - External DB: you can skip this service and point Clair to your external DB
+  # ------------------------------------------------------------------------------
+  hexstrike-postgres:
+    image: docker.io/postgres:18
+    pull_policy: always
+    container_name: hexstrike-postgres
+    restart: unless-stopped
+    user: "999:999"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    # no published ports and bind to 127.0.0.1 only
+    network_mode: "host"
+    command: ["-c", "listen_addresses=127.0.0.1"]
+    volumes:
+      - ./config/db-init:/docker-entrypoint-initdb.d:ro,Z
+      - ../data/postgres:/var/lib/postgresql:Z,U
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -p 5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

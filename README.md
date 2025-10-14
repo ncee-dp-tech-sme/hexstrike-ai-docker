@@ -126,32 +126,55 @@ source hexstrike-env/bin/activate  # Linux/Mac
 pip3 install -r requirements.txt
 
 ```
-
 ### 🐳 Docker Installation
 
-**Quick start with pre-built environment including all 150+ security tools:**
-Note: the scripts are executed with sudo and the container is witg privileged enabled to guarantee all pentesting tools work without capability issues.
+**Quick start with pre-built environment including all 150+ security tools**
+*Note:* the helper scripts use `sudo` and the container runs with `--privileged` to guarantee raw-socket/capability requirements for pentesting tools.
 
 ```bash
-# 1. Clone the repository
+# 1) Clone the repository
 git clone https://github.com/0x4m4/hexstrike-ai.git
 cd hexstrike-ai
 
-# 2. Build Docker image
+# 2) Build the Docker image
 ./docker/build-docker-image.sh
 
-# 3. STart MCP server
+# 3) Start the MCP server (host networking, privileged, caches persisted)
 ./docker/start-docker-mcp-server.sh
-
 ```
 
-**Verify installation:**
+**Verify installation**
+
 ```bash
-# Test health endpoint
+# Health endpoint
 curl http://localhost:8888/health
 ```
 
----
+**Update tool caches (on demand, safe to run anytime)**
+The server starts immediately; a one‑shot background prewarm runs automatically.
+When you want to refresh caches explicitly (e.g., before a batch of scans):
+
+```bash
+# From the host, inside the running container:
+docker compose -f docker/docker-compose.yml exec hexstrike-mcp \
+  sh -lc 'hexstrike-update-caches && tail -n 50 /opt/hexstrike/maintenance/updates.log'
+```
+
+**What gets updated**
+
+* WPScan vulnerability DB
+* Trivy DB
+* Nuclei templates
+* `rockyou.txt` (if present)
+
+**Where data is persisted** (host → container)
+
+* `./data/trivy` → `/root/.cache/trivy`
+* `./data/wpscan` → `/root/.cache/wpscan/db`
+* `./data/nuclei-templates` → `/root/nuclei-templates`
+* `./data/amass` → `/root/.config/amass`
+* `./data/msf` → `/root/.msf4`
+* `./data/postgres` → `/var/lib/postgresql/data` (Clair/MSF DB when local Postgres is enabled)
 
 ### Installation and Setting Up Guide for various AI Clients:
 

@@ -121,7 +121,9 @@ RUN set -eu; \
         jq \
         unzip \
         p7zip-full \
-        binutils
+        binutils \
+        vim \
+        nano
 
 # ==============================================================================
 # Phase 2: Language Runtimes and Build Tools
@@ -313,6 +315,15 @@ RUN apt-get install -y --no-install-recommends \
         whatweb \
         burpsuite \
         zaproxy
+
+# WPScan wrapper: ensure DB exists, then exec real binary
+RUN printf '%s\n' '#!/bin/bash' \
+'DB="${HOME}/.cache/wpscan/db/main.db"' \
+'if [ ! -f "$DB" ]; then' \
+'  /usr/bin/wpscan --update >/dev/null 2>&1 || true' \
+'fi' \
+'exec /usr/bin/wpscan "$@"' \
+> /usr/local/bin/wpscan && chmod +x /usr/local/bin/wpscan
 
 # - katana: next-generation web crawler and spider
 RUN set -euo pipefail; \
@@ -674,6 +685,7 @@ RUN mkdir -p /opt/hexstrike/tools && \
     chmod +x /usr/local/bin/docker-bench-security
 
 # - clairctl: container vulnerability assessment CLI (amd64/arm64)
+# NOTE: currently clariictl does not work without a running clair server + postgresql in separate containers
 RUN arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-amd64";; \
@@ -698,6 +710,23 @@ RUN tmp=$(mktemp -d); cd "$tmp"; \
     tar -xzf kube-bench.tgz; \
     install -m 0755 kube-bench /usr/local/bin/kube-bench; \
     cd /; rm -rf "$tmp"
+
+# Kubernetes CLI
+RUN set -euo pipefail; \
+  arch="$(dpkg --print-architecture)"; case "$arch" in amd64) karch="amd64";; arm64) karch="arm64";; *) echo "unsupported arch for kubectl: $arch"; exit 1;; esac; \
+  KVER="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"; \
+  curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KVER}/bin/linux/${karch}/kubectl"; \
+  chmod 0755 /usr/local/bin/kubectl; \
+  /usr/local/bin/kubectl version --client --output=yaml >/dev/null
+
+  # OpenShift CLI
+RUN set -euo pipefail; \
+  tmp="$(mktemp -d)"; cd "$tmp"; \
+  curl -fsSLo oc.tgz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/openshift-client-linux.tar.gz"; \
+  tar -xzf oc.tgz oc; \
+  install -m 0755 oc /usr/local/bin/oc; \
+  /usr/local/bin/oc version --client >/dev/null; \
+  cd /; rm -rf "$tmp"
 
 # ==============================================================================
 # Phase 16: MCP Entry Points & Minimal Wrappers
@@ -778,6 +807,12 @@ RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
 # ==============================================================================
 # Phase 19: Runtime Configuration
 # ==============================================================================
+
+VOLUME ["/root/.cache/trivy", \
+        "/root/.cache/wpscan/db", \
+        "/root/.config/amass", \
+        "/root/nuclei-templates"]
+
 # Production WSGI server for better performance than Flask dev server
 RUN pip install --no-cache-dir gunicorn
 
@@ -788,6 +823,7 @@ EXPOSE 8888
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8888/health || exit 1
 
-# Start HexStrike MCP server with Gunicorn WSGI server
-CMD ["/opt/hexstrike/venv/bin/gunicorn", "--bind", "0.0.0.0:8888", "--workers", "2", "--threads", "8", "--timeout", "3600", "--graceful-timeout", "120", "--keep-alive", "60", "hexstrike_server:app"]
-
+# Copy optimized entrypoint that pre-warms local caches and starts the MCP server
+COPY docker/config/entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+CMD ["/usr/local/bin/entrypoint.sh"]

@@ -1,0 +1,117 @@
+# ==============================================================================
+# HexStrike AI — Local Lab Targets (Juice Shop, DVWA, WordPress - STATELESS)
+# ==============================================================================
+# Purpose: provide local-only test targets on loopback for safe, repeatable scans.
+# - Juice Shop      → http://127.0.0.1:3000  (bkimminich/juice-shop)
+# - DVWA            → http://127.0.0.1:4280  (vulnerables/web-dvwa; single-container LAMP)
+# - WordPress       → http://127.0.0.1:8081  (STATELESS: no volumes; fresh install every run)
+#
+# Security:
+# - Ports bound to 127.0.0.1 only (not reachable from external hosts).
+# - Separate bridge network: hexstrike-lab.
+#
+# Data persistence:
+# - NONE for WordPress/MySQL on purpose → deterministic clean state.
+# - Juice Shop & DVWA already fine without volumes for repeatable tests.
+#
+# Notes:
+# - DVWA default creds: set via UI (admin/password). Security level via env below.
+# - WordPress: setup wizard appears on each (re)start (clean slate).
+# ==============================================================================
+
+version: "3.8"
+
+networks:
+  hexstrike-lab:
+    driver: bridge
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # OWASP Juice Shop (Node.js) — intentionally vulnerable web app
+  # ---------------------------------------------------------------------------
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: hexstrike-juice-shop
+    restart: unless-stopped
+    networks: [hexstrike-lab]
+    # Bind ONLY on loopback (local machine)
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # DVWA (Damn Vulnerable Web App) — LAMP stack in a single container
+  # ---------------------------------------------------------------------------
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: hexstrike-dvwa
+    restart: unless-stopped
+    networks: [hexstrike-lab]
+    # Bind ONLY on loopback
+    ports:
+      - "127.0.0.1:4280:80"
+    environment:
+      # Optional toggles (can also be set from UI)
+      - PHPIDS=false        # disable PHPIDS by default
+      - SECURITY=low        # low/medium/high/impossible
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # WordPress + MySQL — classic CMS target (STATELESS by design)
+  # ---------------------------------------------------------------------------
+
+  wp-db:
+    image: mysql:8.0
+    container_name: hexstrike-wp-db
+    restart: unless-stopped
+    networks: [hexstrike-lab]
+    environment:
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wpuser
+      - MYSQL_PASSWORD=wpuserpass
+      - MYSQL_ROOT_PASSWORD=changeme-root
+    # No volumes: DB is ephemeral (fresh on recreate)
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  wordpress:
+    image: wordpress:latest
+    container_name: hexstrike-wordpress
+    restart: unless-stopped
+    depends_on:
+      wp-db:
+        condition: service_healthy
+    networks: [hexstrike-lab]
+    # Bind ONLY on loopback
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      - WORDPRESS_DB_HOST=wp-db:3306
+      - WORDPRESS_DB_NAME=wordpress
+      - WORDPRESS_DB_USER=wpuser
+      - WORDPRESS_DB_PASSWORD=wpuserpass
+      # Optional: fix site URLs per test tools
+      - WORDPRESS_CONFIG_EXTRA=define('WP_HOME','http://127.0.0.1:8081'); define('WP_SITEURL','http://127.0.0.1:8081');
+    # No volumes: wp-content and config reset every run
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/wp-login.php"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
