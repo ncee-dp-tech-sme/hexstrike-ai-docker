@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# HexStrike MCP minimal entrypoint (best practice)
+# HexStrike MCP minimal entrypoint
 # - Start server immediately
-# - Fire-and-forget background prewarm of tool caches (best effort)
-# - Tiny per-tool locks to avoid concurrent writes
+# - Background update of security databases (best-effort)
 
 set -euo pipefail
 
-# Kick background security DBs update (don’t block server startup).
-# Logs go to the container stdout/stderr.
+# Run background updater (logs go to container stdout/stderr)
 { /usr/local/bin/update-tools-databases.sh; } &
 
 # Start HexStrike MCP server

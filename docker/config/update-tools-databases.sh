@@ -1,35 +1,33 @@
 #!/usr/bin/env bash
-# HexStrike - unified on-demand security databases updater (safe to run anytime)
-# - Updates: WPScan DB, Trivy DB, Nuclei templates, rockyou wordlist (if present)
-# - Best effort: failures won't crash the script
-# - All logs go to stdout/stderr (no files)
+# HexStrike - update security databases (idempotent, stdout/stderr only)
 
 set -euo pipefail
 
-# Persistent paths (mounted via docker-compose)
-CACHE_WPSCAN_DB="${HOME}/.cache/wpscan/db"
-CACHE_TRIVY="${HOME}/.cache/trivy"
-CONF_AMASS="${HOME}/.config/amass"
-NUCLEI_TEMPLATES="${HOME}/nuclei-templates"
-
-# Ensure directories exist
-mkdir -p "$CACHE_WPSCAN_DB" "$CACHE_TRIVY" "$CONF_AMASS" "$NUCLEI_TEMPLATES" || true
+# Expected mounted paths (do NOT create here)
+# - WPScan DB:        $HOME/.wpscan/db
+# - Trivy cache:      $HOME/.cache/trivy
+# - Nuclei templates: $HOME/nuclei-templates
 
 log() { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
 
-# WPScan DB (best effort)
+# Sanity (print-only): show what exists; do not create anything
+log "WPScan DB dir:        ${HOME}/.wpscan/db  [$( [ -d "$HOME/.wpscan/db" ] && echo present || echo missing )]"
+log "Trivy cache dir:       ${HOME}/.cache/trivy  [$( [ -d "$HOME/.cache/trivy" ] && echo present || echo missing )]"
+log "Nuclei templates dir:  ${HOME}/nuclei-templates  [$( [ -d "$HOME/nuclei-templates" ] && echo present || echo missing )]"
+
+# WPScan DB
 log "WPScan: updating vulnerability DB…"
 /usr/local/bin/wpscan --update || log "WPScan update failed (continuing)"
 
-# Trivy DB (download DB only; no scan, fast and deterministic)
+# Trivy DB (download DB only; no scan)
 log "Trivy: downloading vulnerability DB only…"
-trivy image --download-db-only --cache-dir "$CACHE_TRIVY" || log "Trivy DB download failed (continuing)"
+trivy image --download-db-only --cache-dir "$HOME/.cache/trivy" || log "Trivy DB download failed (continuing)"
 
 # Nuclei templates
 log "Nuclei: updating templates…"
-nuclei -ut -ud "$NUCLEI_TEMPLATES" || log "Nuclei update failed (continuing)"
+nuclei -ut -ud "$HOME/nuclei-templates" || log "Nuclei update failed (continuing)"
 
-# rockyou wordlist (if present)
+# rockyou wordlist (best-effort)
 if [ -f /usr/share/wordlists/rockyou.txt.gz ]; then
   log "Wordlists: ensuring rockyou.txt is available…"
   gzip -dk /usr/share/wordlists/rockyou.txt.gz || true
