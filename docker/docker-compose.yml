@@ -30,7 +30,7 @@ services:
       # - DEBUG_MODE=true
       # - MCP_PORT=8888
       # Clair API
-      - CLAIR_ADDR=http://127.0.0.1:8080
+      - CLAIR_ADDR=http://127.0.0.1:10080
       # Metasploit DB URL (empty = disabled)
       - MSF_DB_URL=postgresql://msf:msf@127.0.0.1:5432/msf
 

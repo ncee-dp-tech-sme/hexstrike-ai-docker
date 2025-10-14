@@ -1,5 +1,5 @@
 # Clair v4 minimal configuration — bound to localhost (no external exposure)
-http_listen_addr: "127.0.0.1:8080"    # API (used by clairctl/MCP)
+http_listen_addr: "127.0.0.1:10080"    # API (used by clairctl/MCP)
 introspection_addr: "127.0.0.1:6060"  # /healthz, /metrics
 
 indexer:
@@ -8,7 +8,7 @@ indexer:
 
 matcher:
   connstring: "host=127.0.0.1 port=5432 user=clair password=clair dbname=clair sslmode=disable"
-  indexer_addr: "http://127.0.0.1:8080"
+  indexer_addr: "http://127.0.0.1:10080"
   migrations: true
 
 notifier:
