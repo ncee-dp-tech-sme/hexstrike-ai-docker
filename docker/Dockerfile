@@ -824,6 +824,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8888/health || exit 1
 
 # Copy optimized entrypoint that pre-warms local caches and starts the MCP server
-COPY docker/config/entrypoint.sh /usr/local/bin/
+COPY --chmod=0755 docker/config/entrypoint.sh docker/config/update-tools-databases.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 CMD ["/usr/local/bin/entrypoint.sh"]

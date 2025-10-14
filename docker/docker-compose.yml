@@ -8,7 +8,7 @@
 version: '3.8'
 
 services:
-  hexstrike-mcp:
+  hexstrike-mcp-server:
     # Build configuration
     build:
       context: ..
@@ -37,7 +37,7 @@ services:
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
       - ../data/trivy:/root/.cache/trivy:rw,Z
-      - ../data/wpscan:/root/.cache/wpscan/db:rw,Z
+      - ../data/wpscan:/root/.wpscan/db:rw,Z
       - ../data/nuclei-templates:/root/nuclei-templates:rw,Z
       - ../data/amass:/root/.config/amass:rw,Z
       - ../data/msf:/root/.msf4:rw,Z
