@@ -8,12 +8,12 @@
 # ------------------------------------------------------------------------------
 # Stage A: Python 3.12 base (for Prowler and Pacu)
 # ------------------------------------------------------------------------------
-FROM python:3.12-slim AS python312-base
+FROM docker.io/python:3.12-slim AS python312-base
 
 # ------------------------------------------------------------------------------
 # Stage B: CloudMapper builder (Python 3.10 + dedicated venv with pyjq)
 # ------------------------------------------------------------------------------
-FROM python:3.10-slim AS cloudmapper-builder
+FROM docker.io/python:3.10-slim AS cloudmapper-builder
 
 ENV CM_VENV=/opt/venvs/cloudmapper
 WORKDIR /opt/hexstrike
@@ -51,7 +51,7 @@ RUN REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
 # ------------------------------------------------------------------------------
 # Stage C: Node.js 18 builder for insomnia-inso (isolated runtime)
 # ------------------------------------------------------------------------------
-FROM node:18-bullseye AS insomnia-node18-builder
+FROM docker.io/node:18-bullseye AS insomnia-node18-builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
     NPM_CONFIG_PREFIX=/opt/insomnia
