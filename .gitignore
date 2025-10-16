@@ -4,4 +4,4 @@ __pycache__/
 .vscode/
 *.log
 data/
-test/results/
+tests/results/

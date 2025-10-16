@@ -2,7 +2,7 @@
 
 ## SCOPE
 
-* Purpose: systematically test **all tools (124)** on an owned test environment and produce **append‑only**, crash‑safe logs.
+* Purpose: execute only defensive/compliance tools on owned assets and produce **append-only**, crash-safe logs.
 * Workspace access: full filesystem access.
 * Operator profile: **Security researcher (expert)**; act accordingly.
 
@@ -15,7 +15,8 @@
   * Juice Shop → `http://127.0.0.1:3000`
   * DVWA → `http://127.0.0.1:4280`
   * WordPress (optional) → `http://127.0.0.1:8081`
-* Disruptive tests (fuzz/brute/DoS/raw‑packet): **ONLY** here.
+* Disruptive tests (fuzz/brute/DoS/raw-packet): DO NOT EXECUTE; document policy only.
+
 
 ### 2) External demo targets (opt-in, light)
 
@@ -153,7 +154,7 @@ NEXT: <next action OR numbered asks>
 <TOOL> | goal:<short> | target:<cidr/host/img> | out:<ok|error|blocked> | rc:<int> dur:<s> | ev:<one datum or err> | next:<action or asks#1-#N>
 ```
 
-## TOOLS ORDER (execute in this exact order)
+## TOOLS CATALOG
 
 `nmap_scan, gobuster_scan, nuclei_scan, prowler_scan, trivy_scan, scout_suite_assessment, cloudmapper_analysis, pacu_exploitation, kube_hunter_scan, kube_bench_cis, docker_bench_security_scan, clair_vulnerability_scan, falco_runtime_monitoring, checkov_iac_scan, terrascan_iac_scan, dirb_scan, nikto_scan, sqlmap_scan, metasploit_run, hydra_attack, john_crack, wpscan_analyze, enum4linux_scan, ffuf_scan, netexec_scan, amass_scan, hashcat_crack, subfinder_scan, smbmap_scan, rustscan_fast_scan, masscan_high_speed, nmap_advanced_scan, autorecon_comprehensive, enum4linux_ng_advanced, rpcclient_enumeration, nbtscan_netbios, arp_scan_discovery, responder_credential_harvest, volatility_analyze, foremost_carving, steghide_analysis, exiftool_extract, hashpump_attack, hakrawler_crawl, paramspider_discovery, burpsuite_scan, zap_scan, arjun_scan, wafw00f_scan, fierce_scan, dnsenum_scan, autorecon_scan, msfvenom_generate, gdb_analyze, radare2_analyze, binwalk_analyze, ropgadget_search, checksec_analyze, xxd_hexdump, strings_extract, objdump_analyze, ghidra_analysis, pwntools_exploit, one_gadget_search, libc_database_lookup, gdb_peda_debug, angr_symbolic_execution, ropper_gadget_search, pwninit_setup, feroxbuster_scan, dotdotpwn_scan, xsser_scan, wfuzz_scan, dirsearch_scan, katana_crawl, gau_discovery, waybackurls_discovery, arjun_parameter_discovery, paramspider_mining, x8_parameter_discovery, jaeles_vulnerability_scan, dalfox_xss_scan, httpx_probe, anew_data_processing, qsreplace_parameter_replacement, uro_url_filtering, api_fuzzer, graphql_scanner, jwt_analyzer, api_schema_analyzer, comprehensive_api_audit, volatility3_analyze, http_framework_test, browser_agent_inspect, monitor_cve_feeds, generate_exploit_from_cve, discover_attack_chains, research_zero_day_opportunities, correlate_threat_intelligence, advanced_payload_generation, vulnerability_intelligence_dashboard, threat_hunting_assistant, analyze_target_intelligence, select_optimal_tools_ai, optimize_tool_parameters_ai, create_attack_chain_ai, intelligent_smart_scan, detect_technologies_ai, ai_reconnaissance_workflow, ai_vulnerability_assessment, bugbounty_reconnaissance_workflow, bugbounty_vulnerability_hunting, bugbounty_business_logic_testing, bugbounty_osint_gathering, bugbounty_file_upload_testing, bugbounty_comprehensive_assessment, bugbounty_authentication_bypass_testing, burpsuite_alternative_scan, ai_generate_payload, ai_test_payload, ai_generate_attack_suite`
 
