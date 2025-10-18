@@ -2,6 +2,7 @@
 # Update vulnerability/security tool databases for the HexStrike AI container.
 # Scope: environment-only refresh steps (no scanning).
 
+
 set -euo pipefail
 
 log()       { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
@@ -65,9 +66,8 @@ else
 fi
 
 # --- Trivy DB download (no scan) ---
-log "Trivy: downloading vulnerability DB only…"
 if command -v trivy >/dev/null 2>&1; then
-  if ! trivy --download-db-only --cache-dir "${HOME}/.cache/trivy"; then
+  if ! trivy image --download-db-only --cache-dir "${HOME}/.cache/trivy"; then
     log_error "Trivy DB download failed (non-zero exit)"
   fi
 else
@@ -85,9 +85,10 @@ else
 fi
 
 # --- OWASP ZAP add-ons (headless) ---
+# Bind to a dedicated, non-conflicting port to avoid "Address already in use".
 log "ZAP: updating add-ons (headless)…"
 if command -v zaproxy >/dev/null 2>&1; then
-  if ! zaproxy -cmd -addonupdate; then
+  if ! zaproxy -cmd -silent -port 8099 -addonupdate; then
     log_error "ZAP add-on update failed (non-zero exit)"
   fi
 else
@@ -103,6 +104,5 @@ if command -v nuclei >/dev/null 2>&1; then
 else
   log_error "Nuclei binary not found in PATH"
 fi
-
 
 log "=== HexStrike updater: done ==="
