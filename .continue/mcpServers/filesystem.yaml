@@ -1,0 +1,11 @@
+name: Filesystem MCP
+version: "1.0.0"
+schema: v1
+mcpServers:
+  - name: filesystem
+    transport: stdio
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - "/home/argan/Desktop/WORKSPACE_AI/WORKSPACE_AGENT"

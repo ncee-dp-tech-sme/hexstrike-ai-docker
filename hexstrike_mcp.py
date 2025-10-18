@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hexstrike_mcp.py
 """
 HexStrike AI MCP Client - Enhanced AI Agent Communication Interface
 

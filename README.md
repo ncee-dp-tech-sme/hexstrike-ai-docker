@@ -128,8 +128,13 @@ pip3 install -r requirements.txt
 ```
 ### 🐳 Docker Installation
 
-**Quick start with pre-built environment including all 150+ security tools**
-*Note:* the helper scripts use `sudo` and the container runs with `--privileged` to guarantee raw-socket/capability requirements for pentesting tools.
+**Quick start**
+*Note:* the helper scripts use `sudo` and the container runs in `privileged` mode to guarantee all capabilities such as raw-socket capability requirements for pentesting tools. Container hardening is possiblme in base of your requirements but checks are neeed. Check docker-compose.yml for the capability details.
+
+Rationale:
+- Use Kali Linux latest astable version
+- Have all latest tools installed with the official steps (apt, release github, compilation only if necessary).
+- Have a consistent pre-built, pre-configured and replicable environment including all the necessary tools.
 
 ```bash
 # 1) Clone the repository

@@ -36,6 +36,7 @@ services:
 
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
+      - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
       - ../data/trivy:/root/.cache/trivy:rw,Z
       - ../data/wpscan:/root/.wpscan/db:rw,Z
       - ../data/nuclei-templates:/root/nuclei-templates:rw,Z
@@ -44,6 +45,9 @@ services:
       - ../data/exploitdb:/usr/share/exploitdb:rw,Z
       - ../data/nikto:/var/lib/nikto:rw,Z
       - ../data/zap:/root/.ZAP:rw,Z
+      # Necessay mounts for kube-bench
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
 
     # Restart policy suitable for production
     restart: unless-stopped

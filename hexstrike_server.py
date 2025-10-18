@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# hexstrike_server.py
 """
 HexStrike AI - Advanced Penetration Testing Framework Server
 
@@ -8633,13 +8634,14 @@ cve_intelligence = CVEIntelligenceManager()
 exploit_generator = AIExploitGenerator()
 vulnerability_correlator = VulnerabilityCorrelator()
 
-def execute_command(command: str, use_cache: bool = True) -> Dict[str, Any]:
+def execute_command(command: str, use_cache: bool = True, timeout: int = COMMAND_TIMEOUT) -> Dict[str, Any]:
     """
     Execute a shell command with enhanced features
 
     Args:
         command: The command to execute
         use_cache: Whether to use caching for this command
+        timeout: Maximum execution time in seconds for the command
 
     Returns:
         A dictionary containing the stdout, stderr, return code, and metadata
@@ -8651,8 +8653,8 @@ def execute_command(command: str, use_cache: bool = True) -> Dict[str, Any]:
         if cached_result:
             return cached_result
 
-    # Execute command
-    executor = EnhancedCommandExecutor(command)
+    # Execute command (propagate timeout to the executor)
+    executor = EnhancedCommandExecutor(command, timeout=timeout)
     result = executor.execute()
 
     # Cache successful results
@@ -14367,6 +14369,77 @@ def zap():
 
         if additional_args:
             command += f" {additional_args}"
+
+        if daemon:
+            # Idempotent non-blocking start with readiness probe
+            try:
+                with socket.create_connection((host, int(port)), timeout=0.5):
+                    logger.info(f"ZAP already listening on {host}:{port}")
+                    return jsonify({
+                        "stdout": f"ZAP already running on {host}:{port}",
+                        "stderr": "",
+                        "return_code": 0,
+                        "success": True,
+                        "timed_out": False,
+                        "partial_results": False,
+                        "execution_time": 0,
+                        "timestamp": datetime.now().isoformat()
+                    })
+            except Exception:
+                pass
+
+            logger.info(f"Starting ZAP daemon on {host}:{port}")
+            try:
+                subprocess.Popen(
+                    command,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except Exception as e:
+                logger.error(f"Failed to start ZAP daemon: {e}")
+                return jsonify({
+                    "stdout": "",
+                    "stderr": str(e),
+                    "return_code": 1,
+                    "success": False,
+                    "timed_out": False,
+                    "partial_results": False,
+                    "execution_time": 0,
+                    "timestamp": datetime.now().isoformat()
+                }), 500
+
+            start_ts = time.time()
+            deadline = start_ts + 30.0
+            while time.time() < deadline:
+                try:
+                    with socket.create_connection((host, int(port)), timeout=0.5):
+                        exec_time = time.time() - start_ts
+                        logger.info(f"ZAP daemon is ready on {host}:{port} in {exec_time:.2f}s")
+                        return jsonify({
+                            "stdout": f"ZAP listening on {host}:{port}",
+                            "stderr": "",
+                            "return_code": 0,
+                            "success": True,
+                            "timed_out": False,
+                            "partial_results": False,
+                            "execution_time": exec_time,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                except Exception:
+                    time.sleep(0.5)
+
+            logger.warning(f"ZAP daemon not ready after 30s on {host}:{port}")
+            return jsonify({
+                "stdout": "",
+                "stderr": f"ZAP did not become ready on {host}:{port} within 30s",
+                "return_code": 124,
+                "success": False,
+                "timed_out": True,
+                "partial_results": False,
+                "execution_time": 30.0,
+                "timestamp": datetime.now().isoformat()
+            })
 
         logger.info(f"🔍 Starting ZAP scan: {target}")
         result = execute_command(command)

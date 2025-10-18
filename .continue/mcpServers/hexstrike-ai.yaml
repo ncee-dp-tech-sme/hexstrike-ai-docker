@@ -1,0 +1,15 @@
+name: HexStrike AI MCP
+version: "1.0.0"
+schema: v1
+mcpServers:
+  - name: hexstrike-ai
+    transport: stdio
+    command: /home/argan/Desktop/WORKSPACE_AI/WORKSPACE_AGENT/hexstrike-ai/hexstrike-env/bin/python3
+    args:
+      - /home/argan/Desktop/WORKSPACE_AI/WORKSPACE_AGENT/hexstrike-ai/hexstrike_mcp.py
+      - --server
+      - http://localhost:8888
+      - --debug
+    env:
+      PYTHONUNBUFFERED: "1"
+    timeoutMs: 360000

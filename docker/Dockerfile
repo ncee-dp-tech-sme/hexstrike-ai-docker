@@ -749,6 +749,10 @@ RUN set -eu; \
     printf '#!/usr/bin/env node\nconst r=require("child_process").execSync("npm root -g").toString().trim();require(r+"/social-analyzer/index.js");\n' \
       > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer && \
     \
+    # hashcat-utils binary does not exist. Provide a real entry point the server checks
+    printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package "hashcat-utils" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named "hashcat-utils". The server health check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx "$@"\n' \
+      > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils && \
+    \
     # Volatility name variants expected by the server
     printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n' \
       > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py && \
@@ -777,9 +781,9 @@ RUN set -eu; \
     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
     \
-    # hashcat-utils binary does not exist. Provide a real entry point the server checks
-    printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package "hashcat-utils" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named "hashcat-utils". The server health check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx "$@"\n' \
-      > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils
+    # Wordlists compatibility for dirsearch default expected by server and client
+    mkdir -p /usr/share/wordlists/dirsearch && \
+    ln -sf /usr/share/wordlists/dirb/common.txt /usr/share/wordlists/dirsearch/common.txt
 
 # ==============================================================================
 # Phase 17: Image Cleanup
