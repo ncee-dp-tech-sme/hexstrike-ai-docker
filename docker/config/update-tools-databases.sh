@@ -94,4 +94,15 @@ else
   log_error "ZAP (zaproxy) binary not found in PATH"
 fi
 
+# --- Nuclei templates update ---
+log "Nuclei: updating templates…"
+if command -v nuclei >/dev/null 2>&1; then
+  if ! nuclei -update-templates; then
+    log_error "Nuclei templates update failed (non-zero exit)"
+  fi
+else
+  log_error "Nuclei binary not found in PATH"
+fi
+
+
 log "=== HexStrike updater: done ==="
