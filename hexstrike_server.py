@@ -845,12 +845,12 @@ class IntelligentDecisionEngine:
                 return TargetType.API_ENDPOINT
             return TargetType.WEB_APPLICATION
 
-        # IP address pattern
-        if re.match(r'^(\d{1,3}\.){3}\d{1,3}$', target):
+        # IP address pattern (port optional)
+        if re.match(r'^(\d{1,3}\.){3}\d{1,3}(:\d{1,5})?$', target):
             return TargetType.NETWORK_HOST
 
-        # Domain name pattern
-        if re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', target):
+        # Domain name pattern (port optional)
+        if re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(:\d{1,5})?$', target):
             return TargetType.WEB_APPLICATION
 
         # File patterns
@@ -9779,7 +9779,8 @@ def intelligent_smart_scan():
                 }
 
         # Execute tools in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=min(len(selected_tools), 5)) as executor:
+        workers = max(1, min(len(selected_tools), 5))
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             # Submit all tool executions
             future_to_tool = {
                 executor.submit(execute_single_tool, tool, target, profile): tool
@@ -9828,22 +9829,71 @@ def intelligent_smart_scan():
         return jsonify({"error": f"Server error: {str(e)}", "success": False}), 500
 
 # Helper functions for intelligent smart scan tool execution
-def execute_nmap_scan(target, params):
-    """Execute nmap scan with optimized parameters"""
+def execute_nmap_scan(target: str, params: dict):
+    """
+    Execute nmap with safe target cleanup.
+    - If `target` is a URL, pass to nmap only host[:port]
+      (e.g. http://127.0.0.1:3000 -> host=127.0.0.1, port=3000).
+    - If a port is present, prepend it to user-provided `ports`.
+    - No imports added; relies on existing `re` and `execute_command`.
+    """
     try:
-        scan_type = params.get('scan_type', '-sV')
-        ports = params.get('ports', '')
-        additional_args = params.get('additional_args', '')
+        params = params or {}
+        scan_type = (params.get("scan_type") or "-sV").strip()
+        ports = (params.get("ports") or "").strip()
+        additional_args = (params.get("additional_args") or "").strip()
 
-        # Build nmap command
-        cmd_parts = ['nmap', scan_type]
-        if ports:
-            cmd_parts.extend(['-p', ports])
+        raw = (target or "").strip()
+
+        # Strip scheme if present (http://, https://, etc.)
+        m = re.match(r'^[a-zA-Z][a-zA-Z0-9+.\-]*://(.+)$', raw)
+        netloc = m.group(1) if m else raw
+
+        # Cut off path/query/fragment
+        for sep in ("/", "?", "#"):
+            i = netloc.find(sep)
+            if i != -1:
+                netloc = netloc[:i]
+                break
+
+        # Extract host and (optional) port
+        host = netloc
+        url_port = None
+
+        if host.startswith("["):  # [IPv6]:port
+            j = host.find("]")
+            if j != -1:
+                inside = host[1:j]
+                rest = host[j+1:]
+                host = inside
+                if rest.startswith(":"):
+                    p = rest[1:]
+                    if p.isdigit():
+                        url_port = int(p)
+        else:
+            # Heuristic: treat single-colon forms as host:port (IPv4/hostname)
+            if host.count(":") == 1:
+                h, p = host.split(":", 1)
+                if p.isdigit():
+                    host = h
+                    url_port = int(p)
+
+        # Merge URL port into -p if present
+        merged_ports = ports
+        if url_port:
+            merged_ports = f"{url_port}" + (f",{merged_ports}" if merged_ports else "")
+
+        # Build command line
+        cmd_parts = ["nmap"]
+        if scan_type:
+            cmd_parts.extend(scan_type.split())
+        if merged_ports:
+            cmd_parts.extend(["-p", merged_ports])
         if additional_args:
             cmd_parts.extend(additional_args.split())
-        cmd_parts.append(target)
+        cmd_parts.append(host)
 
-        return execute_command(' '.join(cmd_parts))
+        return execute_command(" ".join(cmd_parts))
     except Exception as e:
         return {"success": False, "error": str(e)}
 

@@ -297,6 +297,7 @@ RUN tmp="$(mktemp -d)"; cd "$tmp"; \
 # - burpsuite: web security testing platform
 # - zaproxy: OWASP ZAP scanner
 RUN apt-get install -y --no-install-recommends \
+        seclists \
         gobuster \
         feroxbuster \
         ffuf \
@@ -471,7 +472,6 @@ RUN apt-get install -y --no-install-recommends \
         android-tools-adb \
         xxd
 
-# Python-based helpers
 # - ropgadget: ROP/JOP gadget finder
 # - volatility3: memory forensics framework
 # - uro: URL deduplication and normalization
@@ -710,14 +710,6 @@ RUN set -euo pipefail; \
   chmod 0755 /usr/local/bin/kubectl; \
   /usr/local/bin/kubectl version --client --output=yaml >/dev/null
 
-  # OpenShift CLI
-RUN set -euo pipefail; \
-  tmp="$(mktemp -d)"; cd "$tmp"; \
-  curl -fsSLo oc.tgz "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/openshift-client-linux.tar.gz"; \
-  tar -xzf oc.tgz oc; \
-  install -m 0755 oc /usr/local/bin/oc; \
-  /usr/local/bin/oc version --client >/dev/null; \
-  cd /; rm -rf "$tmp"
 
 # ==============================================================================
 # Phase 16: MCP Entry Points & Minimal Wrappers
@@ -781,9 +773,13 @@ RUN set -eu; \
     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
     \
-    # Wordlists compatibility for dirsearch default expected by server and client
-    mkdir -p /usr/share/wordlists/dirsearch && \
-    ln -sf /usr/share/wordlists/dirb/common.txt /usr/share/wordlists/dirsearch/common.txt
+    # Wordlists position for dirsearch as expected by server and client
+    mkdir -p /usr/share/wordlists/dirsearch /usr/share/wordlists/dirbuster && \
+    ln -sf /usr/share/wordlists/dirb/common.txt /usr/share/wordlists/dirsearch/common.txt && \
+    # Wordlists position for Gobuster/Feroxbuster as expected by server
+    ln -sf /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt \
+          /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
 
 # ==============================================================================
 # Phase 17: Image Cleanup
@@ -796,7 +792,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
 # Phase 18: Core Python Dependencies and MCP Server
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
-COPY requirements.txt hexstrike_server.py hexstrike_mcp.py /opt/hexstrike/
+COPY requirements.txt hexstrike_server.py /opt/hexstrike/
 
 # Install core Python dependencies into virtual environment
 RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt

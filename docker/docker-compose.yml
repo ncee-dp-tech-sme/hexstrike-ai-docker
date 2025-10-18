@@ -43,7 +43,6 @@ services:
       - ../data/amass:/root/.config/amass:rw,Z
       - ../data/msf:/root/.msf4:rw,Z
       - ../data/exploitdb:/usr/share/exploitdb:rw,Z
-      - ../data/nikto:/var/lib/nikto:rw,Z
       - ../data/zap:/root/.ZAP:rw,Z
       # Necessay mounts for kube-bench
       - /var/run/docker.sock:/var/run/docker.sock
