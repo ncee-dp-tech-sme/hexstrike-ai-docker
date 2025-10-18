@@ -1,49 +1,97 @@
 #!/usr/bin/env bash
-# HexStrike — update security databases (idempotent; stdout/stderr only)
+# Update vulnerability/security tool databases for the HexStrike AI container.
+# Scope: environment-only refresh steps (no scanning).
 
 set -euo pipefail
 
-log() { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
+log()       { printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
+log_error() { printf '[%s] ERROR: %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >&2; }
 
-# Print-only sanity (do not create anything)
-log "WPScan DB dir:        ${HOME}/.wpscan/db        [$([ -d "$HOME/.wpscan/db" ] && echo present || echo missing)]"
-log "Trivy cache dir:       ${HOME}/.cache/trivy      [$([ -d "$HOME/.cache/trivy" ] && echo present || echo missing)]"
-log "Nuclei templates dir:  ${HOME}/nuclei-templates  [$([ -d "$HOME/nuclei-templates" ] && echo present || echo missing)]"
-log "ExploitDB dir:         /usr/share/exploitdb      [$([ -d "/usr/share/exploitdb" ] && echo present || echo missing)]"
-log "Nikto data dir:        /var/lib/nikto            [$([ -d "/var/lib/nikto" ] && echo present || echo missing)]"
-log "Nmap scripts DB:       /usr/share/nmap/scripts/script.db [$([ -f "/usr/share/nmap/scripts/script.db" ] && echo present || echo missing)]"
-log "ZAP home:              ${HOME}/.ZAP              [$([ -d "$HOME/.ZAP" ] && echo present || echo missing)]"
+HOME="${HOME:-/root}"
 
-# WPScan
-log "WPScan: updating vulnerability DB…"
-/usr/local/bin/wpscan --update || log "WPScan update failed (continuing)"
+log "=== HexStrike updater: starting ==="
 
-# Trivy (download DB only; no scan)
-log "Trivy: downloading vulnerability DB only…"
-trivy image --download-db-only --cache-dir "$HOME/.cache/trivy" || log "Trivy DB download failed (continuing)"
-
-# Nuclei
-log "Nuclei: updating templates…"
-nuclei -ut -ud "$HOME/nuclei-templates" || log "Nuclei update failed (continuing)"
-
-# ExploitDB (searchsploit)
-log "ExploitDB: updating (searchsploit -u)…"
-searchsploit -u || log "ExploitDB update failed (continuing)"
-
-# Nikto
-log "Nikto: updating signatures (-update)…"
-nikto -update || log "Nikto update failed (continuing)"
-
-# Nmap script DB
-log "Nmap: rebuilding script database (script.db)…"
-nmap --script-updatedb || log "Nmap script-updatedb failed (continuing)"
-
-# OWASP ZAP add-ons (will create ~/.ZAP if missing)
-if command -v zap.sh >/dev/null 2>&1; then
-  log "ZAP: updating add-ons (headless)…"
-  zap.sh -cmd -addonupdate || log "ZAP add-on update failed (continuing)"
+# --- Sanity overview (missing => ERROR) ---
+if [ -d "$HOME/.wpscan/db" ]; then
+  log "WPScan DB dir:        ${HOME}/.wpscan/db  [present]"
 else
-  log "ZAP: zap.sh not found; skipping"
+  log_error "WPScan DB dir missing: ${HOME}/.wpscan/db"
 fi
 
-log "Security databases update completed."
+if [ -d "$HOME/.cache/trivy" ]; then
+  log "Trivy cache dir:      ${HOME}/.cache/trivy  [present]"
+else
+  log_error "Trivy cache dir missing: ${HOME}/.cache/trivy"
+fi
+
+if [ -d "$HOME/nuclei-templates" ]; then
+  log "Nuclei templates dir: ${HOME}/nuclei-templates  [present]"
+else
+  log_error "Nuclei templates dir missing: ${HOME}/nuclei-templates"
+fi
+
+if [ -d "/usr/share/exploitdb" ]; then
+  log "ExploitDB dir:        /usr/share/exploitdb  [present]"
+else
+  log_error "ExploitDB dir missing: /usr/share/exploitdb"
+fi
+
+if [ -d "/var/lib/nikto" ]; then
+  log "Nikto data dir:       /var/lib/nikto  [present]"
+else
+  log_error "Nikto data dir missing: /var/lib/nikto"
+fi
+
+if [ -f "/usr/share/nmap/scripts/script.db" ]; then
+  log "Nmap scripts DB:      /usr/share/nmap/scripts/script.db  [present]"
+else
+  log_error "Nmap scripts DB missing: /usr/share/nmap/scripts/script.db"
+fi
+
+if [ -d "$HOME/.ZAP" ]; then
+  log "ZAP home:             ${HOME}/.ZAP  [present]"
+else
+  log_error "ZAP home missing: ${HOME}/.ZAP (it will be created on first run)"
+fi
+
+# --- WPScan DB update ---
+log "WPScan: updating vulnerability DB…"
+if command -v wpscan >/dev/null 2>&1; then
+  if ! wpscan --update; then
+    log_error "WPScan DB update failed (non-zero exit)"
+  fi
+else
+  log_error "WPScan binary not found in PATH"
+fi
+
+# --- Trivy DB download (no scan) ---
+log "Trivy: downloading vulnerability DB only…"
+if command -v trivy >/dev/null 2>&1; then
+  if ! trivy --download-db-only --cache-dir "${HOME}/.cache/trivy"; then
+    log_error "Trivy DB download failed (non-zero exit)"
+  fi
+else
+  log_error "Trivy binary not found in PATH"
+fi
+
+# --- Nmap scripts DB refresh ---
+log "Nmap: refreshing scripts database…"
+if command -v nmap >/dev/null 2>&1; then
+  if ! nmap --script-updatedb; then
+    log_error "Nmap script-updatedb failed (non-zero exit)"
+  fi
+else
+  log_error "Nmap binary not found in PATH"
+fi
+
+# --- OWASP ZAP add-ons (headless) ---
+log "ZAP: updating add-ons (headless)…"
+if command -v zaproxy >/dev/null 2>&1; then
+  if ! zaproxy -cmd -addonupdate; then
+    log_error "ZAP add-on update failed (non-zero exit)"
+  fi
+else
+  log_error "ZAP (zaproxy) binary not found in PATH"
+fi
+
+log "=== HexStrike updater: done ==="
