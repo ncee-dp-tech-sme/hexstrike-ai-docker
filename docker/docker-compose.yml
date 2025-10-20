@@ -47,6 +47,8 @@ services:
       # Necessay mounts for kube-bench
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker:ro
+      # Mount workspace used by checkov_iac_scan as default location
+      - ../data/workspace:/workspace:rw,Z
 
     # Restart policy suitable for production
     restart: unless-stopped

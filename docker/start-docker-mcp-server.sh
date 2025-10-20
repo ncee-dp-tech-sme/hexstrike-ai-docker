@@ -13,7 +13,8 @@ mkdir -p \
   "../data/nuclei-templates" \
   "../data/amass" \
   "../data/msf" \
-  "../data/postgres"
+  "../data/postgres" \
+  "../data/workspace" \
 
 [ -f "../logs/hexstrike.log" ] || touch "../logs/hexstrike.log"
 

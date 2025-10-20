@@ -10887,10 +10887,12 @@ def clair():
             return jsonify({"error": "Image parameter is required"}), 400
 
         # Use clairctl for scanning
-        command = f"clairctl analyze {image}"
+        command = "clairctl"
 
         if config:
             command += f" --config {config}"
+
+        command += f" report {image}"
 
         if output_format:
             command += f" --format {output_format}"
@@ -14285,6 +14287,110 @@ def browser_agent_endpoint():
             f"{ModernVisualEngine.format_error_card('ERROR', 'BrowserAgent', str(e))}"
         )
         return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@app.route("/api/tools/burpsuite", methods=["POST"])
+def burpsuite():
+    """Execute Burp Suite with enhanced logging; fallback to alternative workflow when CLI unsupported."""
+    try:
+        params = request.json or {}
+
+        project_file = params.get("project_file", "")
+        config_file = params.get("config_file", "")
+        target = params.get("target", "")
+        headless = params.get("headless", False)
+        scan_type = params.get("scan_type", "")
+        scan_config = params.get("scan_config", "")
+        output_file = params.get("output_file", "")
+        additional_args = params.get("additional_args", "")
+
+        if not target:
+            logger.warning("🎯 Burp Suite called without target parameter")
+            return jsonify({"error": "Target parameter is required"}), 400
+
+        command_parts = ["burpsuite"]
+
+        if headless:
+            command_parts.append("--headless")
+
+        if project_file:
+            command_parts.append(f'--project-file "{project_file}"')
+
+        if config_file:
+            command_parts.append(f'--config-file "{config_file}"')
+
+        if scan_type:
+            command_parts.append(f'--scan-type "{scan_type}"')
+
+        if scan_config:
+            command_parts.append(f'--scan-config "{scan_config}"')
+
+        command_parts.append(f'--scan-url "{target}"')
+
+        if output_file:
+            command_parts.append(f'--report-file "{output_file}"')
+
+        if additional_args:
+            command_parts.append(additional_args)
+
+        command = " ".join(command_parts)
+
+        logger.info(
+            f"{ModernVisualEngine.create_section_header('BURP SUITE', '🛡️', 'ORANGE_RED')}"
+        )
+        logger.info(
+            f"{ModernVisualEngine.format_tool_status('BurpSuite', 'RUNNING', target)}"
+        )
+
+        tool_params = {
+            "project_file": project_file,
+            "config_file": config_file,
+            "target": target,
+            "headless": headless,
+            "scan_type": scan_type,
+            "scan_config": scan_config,
+            "output_file": output_file,
+            "additional_args": additional_args,
+        }
+
+        result = execute_command_with_recovery(
+            "burpsuite", command, tool_params, use_cache=False
+        )
+
+        if result.get("success"):
+            logger.info(
+                f"{ModernVisualEngine.format_tool_status('BurpSuite', 'SUCCESS', target)}"
+            )
+            return jsonify(result)
+
+        stdout = result.get("stdout", "")
+        stderr = result.get("stderr", "")
+        fallback_triggers = [
+            "Unrecognized command-line argument",
+            "Do you accept the terms and conditions",
+        ]
+
+        if any(trigger in stdout for trigger in fallback_triggers):
+            logger.warning(
+                f"{ModernVisualEngine.format_tool_status('BurpSuite', 'RECOVERY', 'CLI unsupported, using alternative workflow')}"
+            )
+            fallback_params = params.copy()
+            with app.test_request_context(
+                "/api/tools/burpsuite-alternative",
+                method="POST",
+                json=fallback_params,
+            ):
+                logger.warning("⚠️ Burp Suite CLI unsupported – falling back to alternative workflow")
+                return burpsuite_alternative()
+
+        logger.error(
+            f"{ModernVisualEngine.format_error_card('ERROR', 'BurpSuite', stderr or 'Unknown error')}"
+        )
+        return jsonify(result), 500
+
+    except Exception as e:
+        logger.error(f"💥 Error in burpsuite endpoint: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
 
 @app.route("/api/tools/burpsuite-alternative", methods=["POST"])
 def burpsuite_alternative():

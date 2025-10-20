@@ -789,33 +789,27 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
     touch ~/.hushlogin
 
 # ==============================================================================
-# Phase 18: Core Python Dependencies and MCP Server
+# Phase 18: MCP Server and Runtime Configuration
 # ==============================================================================
 # Copy requirements.txt first for Docker layer caching optimization
-COPY requirements.txt hexstrike_server.py /opt/hexstrike/
+COPY requirements.txt /opt/hexstrike/
 
 # Install core Python dependencies into virtual environment
-RUN pip install --no-cache-dir -r /opt/hexstrike/requirements.txt
-
-# ==============================================================================
-# Phase 19: Runtime Configuration
-# ==============================================================================
+# Production WSGI server for better performance than Flask dev server
+RUN pip install --no-cache-dir gunicorn -r /opt/hexstrike/requirements.txt
 
 VOLUME ["/root/.cache/trivy", \
         "/root/.wpscan/db",   \
         "/root/.config/amass", \
         "/root/nuclei-templates", \
-        "/root/.msf4"]
+        "/root/.msf4", \
+        "/workspace"]
 
-# Production WSGI server for better performance than Flask dev server
-RUN pip install --no-cache-dir gunicorn
+# Copy server code at the end to leverage Docker layer caching
+COPY hexstrike_server.py /opt/hexstrike/
 
 # Expose MCP server port
 EXPOSE 8888
-
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:8888/health || exit 1
 
 # Copy optimized entrypoint that pre-warms local caches and starts the MCP server
 COPY --chmod=0755 docker/config/entrypoint.sh docker/config/update-tools-databases.sh /usr/local/bin/
