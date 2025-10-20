@@ -44,11 +44,12 @@ services:
       - ../data/msf:/root/.msf4:rw,Z
       - ../data/exploitdb:/usr/share/exploitdb:rw,Z
       - ../data/zap:/root/.ZAP:rw,Z
-      # Necessay mounts for kube-bench
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker:ro
       # Mount workspace used by checkov_iac_scan as default location
       - ../data/workspace:/workspace:rw,Z
+      # Necessay mounts for kube-bench that neeed host socket access
+      - /run/podman/podman.sock:/var/run/docker.sock        # Docker API socket (shim in case of Podman)
+      # Add this volume below if you have podman
+      - /run/podman/podman.sock:/run/podman/podman.sock     # Podman API socket
 
     # Restart policy suitable for production
     restart: unless-stopped
@@ -144,7 +145,7 @@ services:
   # ----------------------------------------------------------------------------
   hexstrike-postgres:
     image: docker.io/postgres:18
-    pull_policy: always
+    pull_policy: missing
     container_name: hexstrike-postgres
     restart: unless-stopped
     user: "999:999"

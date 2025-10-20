@@ -19,7 +19,7 @@ ENV CM_VENV=/opt/venvs/cloudmapper
 WORKDIR /opt/hexstrike
 
 # Install build prerequisites and jq development libraries for pyjq
-RUN set -eu; \
+RUN set -euo pipefail; \
     apt-get update && apt-get install -y --no-install-recommends \
       build-essential autoconf automake libtool pkg-config \
       git curl ca-certificates \
@@ -56,7 +56,8 @@ FROM docker.io/node:18-bullseye AS insomnia-node18-builder
 ENV DEBIAN_FRONTEND=noninteractive \
     NPM_CONFIG_PREFIX=/opt/insomnia
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eu; \
+    apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         python3 \
         python3-pip \
@@ -106,7 +107,7 @@ RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &
 # - wordlists: common wordlists for security testing
 # - p7zip-full: 7-Zip archiver
 # - binutils: binary utilities
-RUN set -eu; \
+RUN set -euo pipefail; \
     apt-get update && apt-get install -y --no-install-recommends \
         apt-utils \
         curl \
@@ -225,7 +226,6 @@ RUN cd /tmp && \
 # - bind9-host: DNS lookup utility
 # - responder: LLMNR, NBT-NS, and MDNS poisoner
 # - netexec: network authentication and execution toolkit
-# - enum4linux-ng: Windows/Samba enumeration (next-gen)
 # - enum4linux: Windows/Samba enumeration
 # - nbtscan: NetBIOS name scanner
 # - arp-scan: ARP network scanner
@@ -252,7 +252,6 @@ RUN apt-get install -y --no-install-recommends \
         bind9-host \
         responder \
         netexec \
-        enum4linux-ng \
         enum4linux \
         nbtscan \
         arp-scan \
@@ -263,6 +262,10 @@ RUN apt-get install -y --no-install-recommends \
         net-tools \
         ethtool \
         traceroute
+
+# - enum4linux-ng: Windows/Samba enumeration (next-gen)
+# Install from git because APT package is obsolete
+RUN pip3 install --no-cache-dir git+https://github.com/cddmp/enum4linux-ng.git
 
 # - rustscan: modern and fast port scanner
 RUN tmp="$(mktemp -d)"; cd "$tmp"; \
@@ -285,6 +288,7 @@ RUN tmp="$(mktemp -d)"; cd "$tmp"; \
 # - xsser: cross-site scripting framework
 # - wfuzz: web application fuzzer
 # - dirb: web content scanner
+# - python3-requests-ntlm: NTLM authentication for Python requests reuired by dirsearch
 # - dirsearch: web path scanner
 # - nikto: web server scanner
 # - sqlmap: automated SQL injection tool
@@ -305,6 +309,7 @@ RUN apt-get install -y --no-install-recommends \
         xsser \
         wfuzz \
         dirb \
+        python3-requests-ntlm \
         dirsearch \
         nikto \
         sqlmap \
@@ -710,6 +715,21 @@ RUN set -euo pipefail; \
   chmod 0755 /usr/local/bin/kubectl; \
   /usr/local/bin/kubectl version --client --output=yaml >/dev/null
 
+# Install Docker CLI from official Docker repository to talk to host's Docker/Podman API socket 
+# Note: necessary for kube-bench
+RUN set -euo pipefail; \
+  # Add Docker's official GPG key:
+  install -m 0755 -d /etc/apt/keyrings; \
+  curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc; \
+  chmod a+r /etc/apt/keyrings/docker.asc; \
+  # Add the repository to Apt sources:
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null; \
+  apt-get update; \
+  # Install latest Docker CLI
+  apt-get install -y --no-install-recommends docker-ce-cli;
 
 # ==============================================================================
 # Phase 16: MCP Entry Points & Minimal Wrappers
@@ -772,6 +792,7 @@ RUN set -eu; \
     ln -sf /root/.local/bin/scout                  /usr/local/bin/scout-suite && \
     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm && \
     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego && \
+    ln -sf /usr/share/ghidra/support/analyzeHeadless /usr/local/bin/analyzeHeadless && \
     \
     # Wordlists position for dirsearch as expected by server and client
     mkdir -p /usr/share/wordlists/dirsearch /usr/share/wordlists/dirbuster && \

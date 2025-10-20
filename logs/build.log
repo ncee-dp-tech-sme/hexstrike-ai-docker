@@ -8,219 +8,92 @@ Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.
 [2/4] STEP 3/7: WORKDIR /opt/hexstrike
 --> Using cache 44cfcd69138ceed8db385077cdfbf97bd4d74a7dc63cf6aa0ffd097e792817e5
 --> 44cfcd69138c
-[2/4] STEP 4/7: RUN set -eu;     apt-get update && apt-get install -y --no-install-recommends       build-essential autoconf automake libtool pkg-config       git curl ca-certificates       libjq-dev libonig-dev bison flex     && rm -rf /var/lib/apt/lists/*
---> Using cache b2cd27d11e697f4ef4960e865fb13f8cf3fbe4bd1a41beaa661909b226928427
---> b2cd27d11e69
+[2/4] STEP 4/7: RUN set -euo pipefail;     apt-get update && apt-get install -y --no-install-recommends       build-essential autoconf automake libtool pkg-config       git curl ca-certificates       libjq-dev libonig-dev bison flex     && rm -rf /var/lib/apt/lists/*
+--> Using cache dd0940bc273a4e9520d9f67bb1041b6582dc0fde9aa1a0b972a7b619a2ff3a8c
+--> dd0940bc273a
 [2/4] STEP 5/7: RUN python -m venv "$CM_VENV"  && "$CM_VENV/bin/pip" install --no-cache-dir -U pip setuptools wheel
---> Using cache e23fb66e706aacb9c7156b9de0fd3b255dbe3af7dc4f9b2739f19fec2a86de0d
---> e23fb66e706a
+--> Using cache cb8f43333cff6c0f39c0c2ca0fd694f92e88b0ba19b6e04d36619495307226d8
+--> cb8f43333cff
 [2/4] STEP 6/7: RUN git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper  && rm -rf /opt/hexstrike/tools/cloudmapper/.git
---> Using cache 093e9351696df0b2a99c619e7e8a68722fdff86795248fefe0f81fa9ef64fbb5
---> 093e9351696d
+--> Using cache 01cfe399d69c85aad34aaec84851b0651e7130ca0c1d95dffdc00c78a761175b
+--> 01cfe399d69c
 [2/4] STEP 7/7: RUN REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt;   sed -i     -e 's/^matplotlib==3\.4\.3$/matplotlib==3\.7\.5/'     -e 's/^numpy==1\.22\.0$/numpy>=1\.23/'     "$REQ";   sed -i '/^typed-ast==/d' "$REQ";   sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ";   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
---> Using cache 92a5a892d6a3c7f3addbc5afb2d48d7658fd1d029f5fe4ca18647297095c53b1
---> 92a5a892d6a3
+--> Using cache 1aa945757ed36043fada454ee6782bcd9b8dceb3320c95b246edfa716346c0c7
+--> 1aa945757ed3
 [3/4] STEP 1/5: FROM docker.io/node:18-bullseye AS insomnia-node18-builder
 [3/4] STEP 2/5: ENV DEBIAN_FRONTEND=noninteractive     NPM_CONFIG_PREFIX=/opt/insomnia
 --> Using cache 43bcdad1cf56b8d3388b461c8749cabbf25cf09aeab0301f06f5551314f5b3b4
 --> 43bcdad1cf56
-[3/4] STEP 3/5: RUN apt-get update && apt-get install -y --no-install-recommends         build-essential         python3         python3-pip         python3-setuptools         libcurl4-openssl-dev         pkg-config         git         jq     && python3 -m pip install --no-cache-dir gyp-next
---> Using cache f5fe935c0b2f785802bddfe7d2335d2106dea48f00f5c4a3bdcaee6fae241d51
---> f5fe935c0b2f
+[3/4] STEP 3/5: RUN set -eu;     apt-get update && apt-get install -y --no-install-recommends         build-essential         python3         python3-pip         python3-setuptools         libcurl4-openssl-dev         pkg-config         git         jq     && python3 -m pip install --no-cache-dir gyp-next
+--> Using cache 596f66fd3a8d8ca86d23228ddcc38e049df3703edbe032b3fa16c0e02cac5beb
+--> 596f66fd3a8d
 [3/4] STEP 4/5: RUN npm install -g --build-from-source insomnia-inso     && npm cache clean --force
---> Using cache da8c6d61bf582d9842a845c6672d7407a5760542bc24d4414e17e2fc0053cfbf
---> da8c6d61bf58
+--> Using cache 275c1536ca7334a962db924c6c5ec41f028349814200e191ce85af3a3eb3ef37
+--> 275c1536ca73
 [3/4] STEP 5/5: RUN mkdir -p /opt/insomnia-artifacts/node18 &&     cp -a /usr/local/bin /opt/insomnia-artifacts/node18/bin &&     cp -a /usr/local/lib /opt/insomnia-artifacts/node18/lib &&     cp -a /usr/local/include /opt/insomnia-artifacts/node18/include &&     cp -a /usr/local/share /opt/insomnia-artifacts/node18/share &&     cp -a /opt/insomnia /opt/insomnia-artifacts/insomnia
---> Using cache 81a28d6e2ea3818b0f36053a9c9d96c0c74233f987ef329d596efe49db9f4029
---> 81a28d6e2ea3
-[4/4] STEP 1/65: FROM docker.io/kalilinux/kali-last-release:latest
-[4/4] STEP 2/65: ENV DEBIAN_FRONTEND=noninteractive
+--> Using cache 6301a5de318087cf18643f5eb266aa685de8674386350fa321945a7e2806c2e1
+--> 6301a5de3180
+[4/4] STEP 1/67: FROM docker.io/kalilinux/kali-last-release:latest
+[4/4] STEP 2/67: ENV DEBIAN_FRONTEND=noninteractive
 --> Using cache 6f04e7541e4bf3c72f4bdba50ebf5c834f8e34c94920664996a5f85608a35e3a
 --> 6f04e7541e4b
-[4/4] STEP 3/65: WORKDIR /opt/hexstrike
+[4/4] STEP 3/67: WORKDIR /opt/hexstrike
 --> Using cache fa63b6b46b90785d30c3c3e0d8b51dad52d1d46dba5b65873a259217410a4afa
 --> fa63b6b46b90
-[4/4] STEP 4/65: COPY --from=python312-base /usr/local/ /usr/local/
+[4/4] STEP 4/67: COPY --from=python312-base /usr/local/ /usr/local/
 --> Using cache ac8c27f57ecd4810c9b1df6deb3353f9e8ef1728b1baee944064e1585b49d1d2
 --> ac8c27f57ecd
-[4/4] STEP 5/65: RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &&     ldconfig
+[4/4] STEP 5/67: RUN ln -sf /usr/local/lib/libpython3.12.so.1.0 /usr/local/lib/libpython3.12.so &&     ldconfig
 --> Using cache 07d640825920bc46026e04158237048c37c2ab17fcc4ca967cd6a7aa64caeba5
 --> 07d640825920
-[4/4] STEP 6/65: RUN set -eu;     apt-get update && apt-get install -y --no-install-recommends         apt-utils         curl         wget         git         gnupg2         lsb-release         xz-utils         ca-certificates         wordlists         httpie         jq         unzip         p7zip-full         binutils         vim         nano
---> Using cache f9b1e8c65373f5495c2fc8a728df940baf25ea084930a5456e38241d3983d05f
---> f9b1e8c65373
-[4/4] STEP 7/65: RUN apt-get install -y --no-install-recommends         nodejs         npm         default-jdk         ruby-full         pipx         python3-venv         python3-pip         build-essential         python3-dev         g++
---> Using cache bcda88e38150898fae5be384265d1059372d86e78d7218f1fc07ab98610d4dec
---> bcda88e38150
-[4/4] STEP 8/65: ENV PIPX_DEFAULT_PYTHON=/usr/bin/python3
---> Using cache fb2bac6bbadef20fdf6d018f760e18ba6fe30ad6dc76046c07e3fc3c227330ec
---> fb2bac6bbade
-[4/4] STEP 9/65: ENV npm_config_python=/usr/bin/python3
---> Using cache bfc8fc6c972920dda6b5ca5dda5f5f3bc78ad574ca7cbb772a235e0a25ec921e
---> bfc8fc6c9729
-[4/4] STEP 10/65: ENV PYTHON=/usr/bin/python3
---> Using cache 1d12e66a30e43299b5301ab205b9c4af73015b0d7180442fe39df4405b66247b
---> 1d12e66a30e4
-[4/4] STEP 11/65: ENV VIRTUAL_ENV=/opt/hexstrike/venv
---> Using cache 8ab04c9ab8916672fdb99d9d11b6a4d9062d54af3d492e235f43ecd9455b54bd
---> 8ab04c9ab891
-[4/4] STEP 12/65: ENV PATH="$VIRTUAL_ENV/bin:$PATH"
---> Using cache 029b32a100ec80052b3c3215b4ae54ec79a38dba794742cb604166265e12b6f8
---> 029b32a100ec
-[4/4] STEP 13/65: RUN /usr/bin/python3 -m venv "$VIRTUAL_ENV"  && . "$VIRTUAL_ENV/bin/activate"  && pip install --no-cache-dir --upgrade pip setuptools wheel
---> Using cache 78ece6074020b8a02e53d084acc4c887d6c65bee96879a589ba7654679a77363
---> 78ece6074020
-[4/4] STEP 14/65: ENV PIP_DISABLE_PIP_VERSION_CHECK=1     PIP_DEFAULT_TIMEOUT=120     PIP_NO_PYTHON_VERSION_WARNING=1
---> Using cache eb5f71f0b4a0548fd797a0694af5086e00b6a9a3f6477a4cc02113da003bd447
---> eb5f71f0b4a0
-[4/4] STEP 15/65: ENV PATH="${PATH}:/root/.local/bin"
---> Using cache 0b2322a0e17eac986f68ff0d2e3d39b6343f4876f33f5ae4285a30edd688531f
---> 0b2322a0e17e
-[4/4] STEP 16/65: RUN apt-get install -y --no-install-recommends         ansible
---> Using cache 13bd74c5a0a39c0e5e0f674c0b3c053881d43507cc24e8f858aa1af830f4c23e
---> 13bd74c5a0a3
-[4/4] STEP 17/65: RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     &&     pipx install --python /usr/local/bin/python3.12 --pip-args="--no-cache-dir --prefer-binary" prowler     &&     pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  &&     pipx install --pip-args="--no-cache-dir --prefer-binary" kube-hunter &&     pipx install --pip-args="--no-cache-dir --prefer-binary" shodan      &&     pipx install --pip-args="--no-cache-dir --prefer-binary" censys
---> Using cache 6ec9f893e3c99af24160f8da10e53968bf2a19c69bf1fbb367ec1eadea9bf074
---> 6ec9f893e3c9
-[4/4] STEP 18/65: RUN url="$(curl -s https://api.github.com/repos/tenable/terrascan/releases/latest       | awk -F'"' '/browser_download_url/ && /Linux_[xX]86_64\.tar\.gz/ {print $4; exit}')";     curl -fsSL "$url" -o /tmp/terrascan.tgz;     tar -C /tmp -xzf /tmp/terrascan.tgz terrascan;     install /tmp/terrascan /usr/local/bin/terrascan;     rm -f /tmp/terrascan /tmp/terrascan.tgz
---> Using cache a0e5f6b4b2ba2cf428686900b838a22f62cbde5923a820b3a011e1ac655c5abc
---> a0e5f6b4b2ba
-[4/4] STEP 19/65: RUN install -d -m 0755 /etc/apt/keyrings &&     curl -fsSL https://get.opentofu.org/opentofu.gpg | tee /etc/apt/keyrings/opentofu.gpg >/dev/null &&     curl -fsSL https://packages.opentofu.org/opentofu/tofu/gpgkey | gpg --no-tty --batch --dearmor -o /etc/apt/keyrings/opentofu-repo.gpg &&     chmod a+r /etc/apt/keyrings/opentofu.gpg /etc/apt/keyrings/opentofu-repo.gpg &&     echo "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" > /etc/apt/sources.list.d/opentofu.list &&     echo "deb-src [signed-by=/etc/apt/keyrings/opentofu.gpg,/etc/apt/keyrings/opentofu-repo.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" >> /etc/apt/sources.list.d/opentofu.list &&     apt-get update && apt-get install -y --no-install-recommends tofu &&     ln -sf /usr/bin/tofu /usr/local/bin/terraform
---> Using cache fbef866db37878d7ed5978ce7bb32ea92fab8cfb685705d01be97cee894d63ed
---> fbef866db378
-[4/4] STEP 20/65: RUN cd /tmp &&     curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip &&     unzip -q awscliv2.zip && ./aws/install &&     rm -rf /tmp/aws /tmp/awscliv2.zip
---> Using cache 71943175ca9c22bb940d48cd635ec1a7aa91f0578c775ee919e0a90f59cb748d
---> 71943175ca9c
-[4/4] STEP 21/65: RUN apt-get install -y --no-install-recommends         nmap         masscan         autorecon         amass         subfinder         sublist3r         fierce         dnsenum         dnsrecon         theharvester         whois         dnsutils         bind9-host         responder         netexec         enum4linux-ng         enum4linux         nbtscan         arp-scan         samba-common-bin         smbclient         iproute2         iputils-ping         net-tools         ethtool         traceroute
---> Using cache 559b92d2b5985ad63e214422bfeef30652edb71b5cf21e416fe016e14738ab3c
---> 559b92d2b598
-[4/4] STEP 22/65: RUN tmp="$(mktemp -d)"; cd "$tmp";   url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest          | jq -r '.assets[]?.browser_download_url | select(endswith("rustscan.deb.zip"))' | head -n1)";   [ -n "$url" ] || { echo "rustscan.deb.zip asset not found in latest release"; exit 1; };   curl -fsSL -o rustscan.deb.zip "$url";   unzip -q rustscan.deb.zip;   deb="$(printf '%s\n' rustscan*.deb | head -n1)";   dpkg -i "$deb" || apt-get -f install -y --no-install-recommends;   cd /; rm -rf "$tmp"
---> Using cache e5ac676ba526455c2e1584dd32570a22e76f3557adf605f7e6a1d8ca65cbe235
---> e5ac676ba526
-[4/4] STEP 23/65: RUN apt-get install -y --no-install-recommends         seclists         gobuster         feroxbuster         ffuf         dotdotpwn         xsser         wfuzz         dirb         dirsearch         nikto         sqlmap         wpscan         arjun         paramspider         hakrawler         wafw00f         whatweb         burpsuite         zaproxy
---> Using cache 8b13134a4fe0e1a13733c0036cfb24115fe0f5cc4ce9dfb57c3c305ee30f7430
---> 8b13134a4fe0
-[4/4] STEP 24/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/katana/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^katana_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)";   [ -n "$asset" ] || { echo 'katana: linux_amd64 zip asset not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/projectdiscovery/katana/releases/download/${tag}/${asset}";   unzip -p "$asset" "*/katana" > katana 2>/dev/null || unzip -p "$asset" "katana" > katana;   chmod 0755 katana; install -m 0755 katana /usr/local/bin/katana;   cd /; rm -rf "$tmp"
---> Using cache 183d090bae770654608dab3605dbd5d7b20f6ea4fcc3171aa5c35ca7a3b6b546
---> 183d090bae77
-[4/4] STEP 25/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/httpx/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^httpx_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)";   [ -n "$asset" ] || { echo 'httpx: linux_amd64 zip asset not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/projectdiscovery/httpx/releases/download/${tag}/${asset}";   unzip -p "$asset" "*/httpx" > httpx 2>/dev/null || unzip -p "$asset" "httpx" > httpx;   chmod 0755 httpx; install -m 0755 httpx /usr/local/bin/httpx;   cd /; rm -rf "$tmp"
---> Using cache cdd50652bb352f2c908194e610647a793a8c4c750171d44dfcdd71d450203327
---> cdd50652bb35
-[4/4] STEP 26/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/projectdiscovery/nuclei/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^nuclei_[0-9.]+_linux_amd64\\.zip$"))' | head -n1)";   [ -n "$asset" ] || { echo 'nuclei: linux_amd64 zip asset not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/projectdiscovery/nuclei/releases/download/${tag}/${asset}";   unzip -p "$asset" "*/nuclei" > nuclei 2>/dev/null || unzip -p "$asset" "nuclei" > nuclei;   chmod 0755 nuclei; install -m 0755 nuclei /usr/local/bin/nuclei;   cd /; rm -rf "$tmp"
---> Using cache 541562967f582677a3d4a26935272e8cf1be566d236bc18cb17cc465a0d52b00
---> 541562967f58
-[4/4] STEP 27/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/hahwul/dalfox/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   [ -n "$tag" ];   asset="dalfox-linux-amd64.tar.gz";   curl -fsSL -o "$asset" "https://github.com/hahwul/dalfox/releases/download/${tag}/${asset}";   tar -xOzf "$asset" dalfox-linux-amd64 > dalfox;   install -m 0755 dalfox /usr/local/bin/dalfox;   cd /; rm -rf "$tmp"
---> Using cache be1f19a3b4d09e8d68190542e05cf5661ee32c303efae911af7e4bd4b82ae541
---> be1f19a3b4d0
-[4/4] STEP 28/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/jaeles-project/jaeles/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^jaeles-.*-linux\\.zip$"))' | head -n1)";   [ -n "$asset" ] || { echo 'jaeles: linux zip asset not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/jaeles-project/jaeles/releases/download/${tag}/${asset}";   unzip -p "$asset" "*/jaeles" > jaeles 2>/dev/null || unzip -p "$asset" "jaeles" > jaeles;   chmod 0755 jaeles; install -m 0755 jaeles /usr/local/bin/jaeles;   cd /; rm -rf "$tmp"
---> Using cache 0a88f573cadcf0226c82a9fcc886a71a410dd707c7e88e9070f44956cb6c657d
---> 0a88f573cadc
-[4/4] STEP 29/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/Sh1Yo/x8/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(. == "x86_64-linux-x8.gz")' | head -n1)";   [ -n "$asset" ] || { echo 'x8: x86_64-linux-x8.gz not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/Sh1Yo/x8/releases/download/${tag}/${asset}";   gzip -dc "$asset" > x8;   chmod 0755 x8; install -m 0755 x8 /usr/local/bin/x8;   cd /; rm -rf "$tmp"
---> Using cache b73615ec29c10c46a163e96e01d9c8841a2947c88a0c5cfcc52364565d9ed3e9
---> b73615ec29c1
-[4/4] STEP 30/65: RUN set -euo pipefail;   tmp="$(mktemp -d)"; cd "$tmp";   j="$(curl -fsSL https://api.github.com/repos/lc/gau/releases/latest)";   tag="$(printf '%s' "$j" | jq -r '.tag_name')";   asset="$(printf '%s' "$j" | jq -r '.assets[]?.name | select(test("^gau_[0-9.]+_linux_amd64\\.tar\\.gz$"))' | head -n1)";   [ -n "$asset" ] || { echo 'gau: linux_amd64 tar.gz asset not found'; exit 1; };   curl -fsSL -o "$asset" "https://github.com/lc/gau/releases/download/${tag}/${asset}";   tar -xOzf "$asset" gau > gau;   install -m 0755 gau /usr/local/bin/gau;   cd /; rm -rf "$tmp"
---> Using cache 998d6a6fea952328d6eb3a698ebf024edb35d963ab8005d86be63f67d13275a9
---> 998d6a6fea95
-[4/4] STEP 31/65: RUN apt-get install -y --no-install-recommends         hydra         john         hashcat         medusa         patator         evil-winrm         hash-identifier         hashid         ophcrack         hashcat-utils
---> Using cache fe8c62d5fbc72a4b626e69f0168b89ad27930126aabef69f04858eaafbb8748c
---> fe8c62d5fbc7
-[4/4] STEP 32/65: RUN apt-get install -y --no-install-recommends         gdb         radare2         ghidra         binwalk         checksec         foremost         steghide         exiftool         ropper         autopsy         sleuthkit         outguess         testdisk         scalpel         bulk-extractor         smbmap         zbar-tools         apktool         android-tools-adb         xxd
---> Using cache 9f4f994dc5cc985e5ed69c60ba9cb373e456d28a4cc2e2c829b4eb229839ecae
---> 9f4f994dc5cc
-[4/4] STEP 33/65: RUN pip install --no-cache-dir         ropgadget         volatility3         uro         pwntools
---> Using cache 001c02e8c5128f5832a23688dc39dadde712be65ba64b80f3dd2bafb8cb7ee6c
---> 001c02e8c512
-[4/4] STEP 34/65: RUN tmp="$(mktemp -d)"; cd "$tmp";   json="$(curl -fsSL https://api.github.com/repos/io12/pwninit/releases/latest)";   url="$(printf '%s\n' "$json" | jq -r '.assets[]?.browser_download_url' | grep -E '/pwninit($|[^/]*$)' | head -n1)";   [ -n "$url" ] || { echo "No binary asset for pwninit latest"; exit 1; };   curl -fsSL -o pwninit "$url";   chmod +x pwninit; install -m 0755 pwninit /usr/local/bin/pwninit;   cd /; rm -rf "$tmp"
---> Using cache 3784881d6d8d80ae700d40fa30a454dd4f6685f73e5b05dcc610a229c9593317
---> 3784881d6d8d
-[4/4] STEP 35/65: RUN gem install --no-document zsteg one_gadget
---> Using cache 92764ec33ee40fe6b2c9eac7603737a18b92f7295298e1fb65b81f7a39567631
---> 92764ec33ee4
-[4/4] STEP 36/65: RUN pip install --no-cache-dir hashpumpy &&     printf '%s\n' '#!/usr/bin/env python3' 'import argparse' 'from hashpumpy import hashpump' 'parser = argparse.ArgumentParser()' 'parser.add_argument("-s","--signature", required=True)' 'parser.add_argument("-d","--data", required=True)' 'parser.add_argument("-k","--key_length", type=int, required=True)' 'parser.add_argument("-a","--append_data", required=True)' 'args = parser.parse_args()' 'new_sig, new_msg = hashpump(args.signature, args.data, args.append_data, args.key_length)' 'print(new_sig)' 'print(new_msg)' > /usr/local/bin/hashpump && chmod +x /usr/local/bin/hashpump
---> Using cache 46a14889ab4756ad4536da15e95fe5631b75273fe991ff84ceaf48b7dbee838a
---> 46a14889ab47
-[4/4] STEP 37/65: RUN apt-get install -y --no-install-recommends         exploitdb         kismet         sherlock         recon-ng         spiderfoot         maltego
---> Using cache fd8ed8c29f79de37f3d2e95bfe2882b235152191cc4e55ffcbddbfa2b7fb206a
---> fd8ed8c29f79
-[4/4] STEP 38/65: RUN npm install -g         social-analyzer         pwned         graphql-inspector         jwt-cracker         graphql-playground-html         graphql-voyager         newman
---> Using cache ba933275acf10bffe266052c84d3a726dec6c8ef6e8994f333b81a73b8301c99
---> ba933275acf1
-[4/4] STEP 39/65: RUN tmp="$(mktemp -d)"; cd "$tmp";   for repo in tomnomnom/anew tomnomnom/qsreplace tomnomnom/waybackurls; do     name="${repo##*/}";     json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest")";     url="$(printf '%s' "$json" | jq -r '.assets[]?.browser_download_url' | grep -E -- '-linux-amd64($|.*\.(tgz|tar\.gz|zip)$)' | head -n1)";     [ -n "$url" ] || { echo "No linux-amd64 asset for ${repo} latest"; exit 1; };     file="${url##*/}"; curl -fsSL -o "$file" "$url";     case "$file" in       *.tgz|*.tar.gz) tar -xzf "$file" ;;       *.zip) unzip -q "$file" ;;       *) : ;;     esac;     bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)";     [ -n "$bin_path" ] || bin_path="./$name";     [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)";     [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; };     install -m 0755 "$bin_path" "/usr/local/bin/$name";     rm -rf ./*;   done;   repo="tomnomnom/assetfinder"; name="assetfinder";   json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases")";   url="$(printf '%s' "$json" | jq -r '.[0].assets[]?.browser_download_url' | grep -E -- '-linux-amd64($|.*\.(tgz|tar\.gz|zip)$)' | head -n1)";   [ -n "$url" ] || { echo "No linux-amd64 asset for ${repo}"; exit 1; };   file="${url##*/}"; curl -fsSL -o "$file" "$url";   case "$file" in     *.tgz|*.tar.gz) tar -xzf "$file" ;;     *.zip) unzip -q "$file" ;;     *) : ;;   esac;   bin_path="$(find . -type f -perm -111 -name "${name}*" | head -n1)";   [ -n "$bin_path" ] || bin_path="./$name";   [ -f "$bin_path" ] || bin_path="$(find . -maxdepth 1 -type f -perm -111 | head -n1)";   [ -n "$bin_path" ] || { echo "No executable found for ${repo}"; exit 1; };   install -m 0755 "$bin_path" "/usr/local/bin/$name";   cd /; rm -rf "$tmp"
---> Using cache e57f48b499a2a18ef3d15ec5580a6f8f6bb9f7ed7c978ad7947a26ca14422da9
---> e57f48b499a2
-[4/4] STEP 40/65: COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/node18 /opt/insomnia-node18
---> Using cache c9133f83dab3f9970dcd341abe9d9397cc8c0198f7937b0b17794fb947565e90
---> c9133f83dab3
-[4/4] STEP 41/65: COPY --from=insomnia-node18-builder /opt/insomnia-artifacts/insomnia /opt/insomnia
---> Using cache 9aea8aabaee7c527eecbd1cdbae24d3f90d8e722c2c7dee27b009ca06505bb84
---> 9aea8aabaee7
-[4/4] STEP 42/65: RUN apt-get install -y --no-install-recommends         wireshark         tshark         tcpdump         aircrack-ng
---> Using cache 695be317366b5143925579400137f02678b039b81b70c327f56dd447464fc3d9
---> 695be317366b
-[4/4] STEP 43/65: RUN apt-get install -y --no-install-recommends         metasploit-framework
---> Using cache a2122afa59a003518b5ee13927796fc1d0be0ba3626adfa9d3c342c29f3ad7db
---> a2122afa59a0
-[4/4] STEP 44/65: RUN install -d -m 0755 /usr/share/keyrings &&     curl -fsSL https://falco.org/repo/falcosecurity-packages.asc       | gpg --dearmor -o /usr/share/keyrings/falco-archive-keyring.gpg &&     echo "deb [signed-by=/usr/share/keyrings/falco-archive-keyring.gpg] https://download.falco.org/packages/deb stable main"       > /etc/apt/sources.list.d/falcosecurity.list &&     apt-get update -y &&     mkdir -p /tmp/falco && cd /tmp/falco &&     apt-get download falco &&     dpkg-deb -x ./falco_*.deb / &&     cd / && rm -rf /tmp/falco
---> Using cache e16937c63c08b622321a5475c226dfe20a971a4644cd6668f4475e69aa90e54a
---> e16937c63c08
-[4/4] STEP 45/65: RUN apt-get install -y --no-install-recommends       chromium       chromium-driver
---> Using cache abdd6a263bccf488a53839d3d3730108af67a2383e7d35fdd3d29dbdb12af4fa
---> abdd6a263bcc
-[4/4] STEP 46/65: COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
---> Using cache 35eeaaf548ada7182d1ff0ae9687c81980390f6bd38e823f1e1e7f6140223944
---> 35eeaaf548ad
-[4/4] STEP 47/65: COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
---> Using cache 962916eda5fb12782b57a0234361e65d1159a2e4e32b20419fc6f78e1d69ec45
---> 962916eda5fb
-[4/4] STEP 48/65: RUN apt-get install -y --no-install-recommends libffi-dev  && pipx install --python /usr/local/bin/python3.12 git+https://github.com/RhinoSecurityLabs/pacu.git
---> Using cache 26e41ae8c742e47c09b73e398aa6301b640fbe4952879aeaaeb6c3be18076548
---> 26e41ae8c742
-[4/4] STEP 49/65: RUN mkdir -p /opt/hexstrike/tools &&     git clone --depth 1 https://github.com/ticarpi/jwt_tool.git /opt/hexstrike/tools/jwt_tool &&     rm -rf /opt/hexstrike/tools/jwt_tool/.git &&     git clone --depth 1 https://github.com/niklasb/libc-database.git /opt/hexstrike/tools/libc-database &&     rm -rf /opt/hexstrike/tools/libc-database/.git &&     git clone --depth 1 https://github.com/longld/peda.git /root/peda &&     rm -rf /root/peda/.git &&     mkdir -p /opt/stegsolve &&     curl -fsSL -o /opt/stegsolve/stegsolve.jar https://github.com/Giotino/stegsolve/releases/download/v1.4/StegSolve-1.4.jar &&     chmod 644 /opt/stegsolve/stegsolve.jar &&     ln -s /opt/hexstrike/tools/libc-database /opt/libc-database &&     ln -s /opt/hexstrike/tools/jwt_tool /opt/jwt_tool
---> Using cache 6ac5520f3d1f0b8cde0693bca810f974f71e13c357967ea7be76160332e9624d
---> 6ac5520f3d1f
-[4/4] STEP 50/65: RUN pip install --no-cache-dir -r /opt/hexstrike/tools/jwt_tool/requirements.txt
---> Using cache f2d63a19737ae60e6cdb67b110e60ef283706927bc528de1362fd8ebdaef4e91
---> f2d63a19737a
-[4/4] STEP 51/65: RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh   | sh -s -- -b /usr/local/bin
---> Using cache 6008de2f6659e33263c4e8ee54fce9f143d8991d762622f67a4b884badad1073
---> 6008de2f6659
-[4/4] STEP 52/65: RUN mkdir -p /opt/hexstrike/tools &&     git clone --depth 1 https://github.com/docker/docker-bench-security.git /opt/hexstrike/tools/docker-bench-security &&     rm -rf /opt/hexstrike/tools/docker-bench-security/.git &&     printf '#!/bin/bash\nset -e\ncd /opt/hexstrike/tools/docker-bench-security\nexec ./docker-bench-security.sh "$@"\n' > /usr/local/bin/docker-bench-security &&     chmod +x /usr/local/bin/docker-bench-security
---> Using cache 05bf6615790d79f32ff01aab0a0fea9a2007d32909a7464a6078164ff0b39327
---> 05bf6615790d
-[4/4] STEP 53/65: RUN arch="$(dpkg --print-architecture)";     case "$arch" in       amd64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-amd64";;       arm64) url="https://github.com/quay/clair/releases/latest/download/clairctl-linux-arm64";;       *) echo "unsupported arch for clairctl: $arch"; exit 1;;     esac;     curl -fsSL "$url" -o /usr/local/bin/clairctl;     chmod 0755 /usr/local/bin/clairctl;     /usr/local/bin/clairctl --version
---> Using cache de05adc801573dedfa7f2b3bb196b75b32694ace9246c7db571607ae1b2ca607
---> de05adc80157
-[4/4] STEP 54/65: RUN tmp=$(mktemp -d); cd "$tmp";     arch="$(dpkg --print-architecture)";     case "$arch" in       amd64) suffix="amd64";;       arm64) suffix="arm64";;       *) echo "unsupported arch for kube-bench: $arch"; exit 1;;     esac;     tag=$(curl -fsSL https://api.github.com/repos/aquasecurity/kube-bench/releases/latest | jq -r '.tag_name');     file="kube-bench_${tag#v}_linux_${suffix}.tar.gz";     curl -fsSL -o kube-bench.tgz "https://github.com/aquasecurity/kube-bench/releases/download/${tag}/${file}";     tar -xzf kube-bench.tgz;     install -m 0755 kube-bench /usr/local/bin/kube-bench;     cd /; rm -rf "$tmp"
---> Using cache b0b57ff3c1a219ab97aff94450f848196c8e30d2aebe309aa98d8b6de55ad67f
---> b0b57ff3c1a2
-[4/4] STEP 55/65: RUN set -euo pipefail;   arch="$(dpkg --print-architecture)"; case "$arch" in amd64) karch="amd64";; arm64) karch="arm64";; *) echo "unsupported arch for kubectl: $arch"; exit 1;; esac;   KVER="$(curl -fsSL https://dl.k8s.io/release/stable.txt)";   curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KVER}/bin/linux/${karch}/kubectl";   chmod 0755 /usr/local/bin/kubectl;   /usr/local/bin/kubectl version --client --output=yaml >/dev/null
---> Using cache 2612e925e3a0d5fc1ff7dee04650e477793bcb7989334c520750915e73588374
---> 2612e925e3a0
-[4/4] STEP 56/65: RUN set -eu;     printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n'       > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper &&     printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n'       > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia &&     printf '#!/bin/bash\nexec java -jar /opt/stegsolve/stegsolve.jar "$@"\n'       > /usr/local/bin/stegsolve && chmod +x /usr/local/bin/stegsolve &&     printf '#!/bin/bash\nexec python3 /opt/hexstrike/tools/jwt_tool/jwt_tool.py "$@"\n'       > /usr/local/bin/jwt-analyzer && chmod +x /usr/local/bin/jwt-analyzer &&     printf '#!/usr/bin/env python3\nimport json,sys\nif len(sys.argv)<2:\n print("Usage: api-schema-analyzer <schema-file>"); sys.exit(1)\npath=sys.argv[1]\nwith open(path,"r",encoding="utf-8") as h:\n data=json.load(h)\npaths=data.get("paths",{})\nprint(f"Endpoints: {len(paths)}")\nfor route,methods in paths.items():\n verbs=\", \".join(m.upper() for m in methods.keys())\n print(f\"- {route}: {verbs}\")\n'       > /usr/local/bin/api-schema-analyzer && chmod +x /usr/local/bin/api-schema-analyzer &&     printf '#!/bin/bash\nexec npx --yes graphql-playground-html "$@"\n'       > /usr/local/bin/graphql-playground && chmod +x /usr/local/bin/graphql-playground &&     printf '#!/bin/bash\nexec npx --yes graphql-voyager "$@"\n'       > /usr/local/bin/graphql-voyager && chmod +x /usr/local/bin/graphql-voyager &&         printf '#!/usr/bin/env python3\nimport runpy,sys\nsys.argv=["patator"]+sys.argv[1:]\nrunpy.run_path("/usr/share/patator/patator.py", run_name="__main__")\n'       > /usr/local/bin/patator && chmod +x /usr/local/bin/patator &&     printf '#!/usr/bin/env node\nconst r=require("child_process").execSync("npm root -g").toString().trim();require(r+"/social-analyzer/index.js");\n'       > /usr/local/bin/social-analyzer && chmod +x /usr/local/bin/social-analyzer &&         printf '#!/bin/bash\n# This launcher exists because the Debian/Kali package "hashcat-utils" ships multiple executables (e.g., cap2hccapx),\n# but no single binary literally named "hashcat-utils". The server health check expects that name.\n# We delegate to a real tool from the suite so the check is truthful; if tools are missing, this fails naturally.\nexec cap2hccapx "$@"\n'       > /usr/local/bin/hashcat-utils && chmod +x /usr/local/bin/hashcat-utils &&         printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n'       > /usr/local/bin/vol.py && chmod +x /usr/local/bin/vol.py &&     printf '#!/bin/bash\nexec python3 -m volatility3 "$@"\n'       > /usr/local/bin/volatility && chmod +x /usr/local/bin/volatility &&     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/volatility3 &&     ln -sf /opt/hexstrike/venv/bin/vol             /usr/local/bin/vol &&         ln -sf /usr/bin/searchsploit                   /usr/local/bin/exploit-db &&     ln -sf /usr/local/bin/newman                   /usr/local/bin/postman &&     ln -sf /usr/bin/http                           /usr/local/bin/httpie &&     ln -sf /usr/local/bin/graphql-inspector        /usr/local/bin/graphql-scanner &&     ln -sf /usr/bin/tsk_loaddb                     /usr/local/bin/sleuthkit &&     ln -sf /usr/bin/msfconsole                     /usr/local/bin/metasploit &&     ln -sf /usr/local/bin/pwned                    /usr/local/bin/have-i-been-pwned &&     ln -sf /usr/local/bin/clairctl                 /usr/local/bin/clair &&     ln -sf /usr/bin/bulk_extractor                 /usr/local/bin/bulk-extractor &&     ln -sf /usr/local/bin/one_gadget               /usr/local/bin/one-gadget &&     ln -sf /root/.local/bin/censys                 /usr/local/bin/censys-cli &&     ln -sf /root/.local/bin/shodan                 /usr/local/bin/shodan-cli &&     ln -sf /opt/hexstrike/tools/libc-database/find /usr/local/bin/libc-database &&     ln -sf /opt/hexstrike/venv/bin/ROPgadget       /usr/local/bin/ropgadget &&     ln -sf /opt/hexstrike/venv/bin/pwn             /usr/local/bin/pwntools &&     ln -sf /root/.local/bin/scout                  /usr/local/bin/scout-suite &&     ln -sf /usr/bin/evil-winrm                     /usr/local/bin/evil-winrm &&     ln -sf /usr/bin/maltego                        /usr/local/bin/maltego &&         mkdir -p /usr/share/wordlists/dirsearch /usr/share/wordlists/dirbuster &&     ln -sf /usr/share/wordlists/dirb/common.txt /usr/share/wordlists/dirsearch/common.txt &&     ln -sf /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt           /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
---> Using cache 503a0d69626c602d0f452694e66f7021924fe4b4de86f96dfb2ded776a2b90a2
---> 503a0d69626c
-[4/4] STEP 57/65: RUN apt-get clean && rm -rf /var/lib/apt/lists/* &&     touch ~/.hushlogin
---> Using cache 5de0944ca9580e96f9af1e261eba925e6236c5ec04cd72f946d932a687625a19
---> 5de0944ca958
-[4/4] STEP 58/65: COPY requirements.txt /opt/hexstrike/
---> Using cache 17921aa2ce85627c63a76dc75d83bb5138f08a241d3967a0cf2a4d43d73739a3
---> 17921aa2ce85
-[4/4] STEP 59/65: RUN pip install --no-cache-dir gunicorn -r /opt/hexstrike/requirements.txt
---> Using cache b539eb3cf6df778027608fec93c781f1fe2592500e160337cbc8b150bbde1b19
---> b539eb3cf6df
-[4/4] STEP 60/65: VOLUME ["/root/.cache/trivy",         "/root/.wpscan/db",           "/root/.config/amass",         "/root/nuclei-templates",         "/root/.msf4",         "/workspace"]
---> Using cache d901122db7473113161e649e3d9cf09414b73ccec0cfbed5f8d16869647b1e82
---> d901122db747
-[4/4] STEP 61/65: COPY hexstrike_server.py /opt/hexstrike/
---> 2eff88ea2a4e
-[4/4] STEP 62/65: EXPOSE 8888
---> b053e6b77ba4
-[4/4] STEP 63/65: COPY --chmod=0755 docker/config/entrypoint.sh docker/config/update-tools-databases.sh /usr/local/bin/
---> b9fc9c19f03b
-[4/4] STEP 64/65: RUN chmod +x /usr/local/bin/entrypoint.sh
---> ea6b22f4df8f
-[4/4] STEP 65/65: CMD ["/usr/local/bin/entrypoint.sh"]
-[4/4] COMMIT hexstrike-ai:v6.0
---> e28dffe3be3d
-Successfully tagged localhost/hexstrike-ai:v6.0
-e28dffe3be3deb9854c46fd217ec6f93e666677c3561c4a0b615c9bd297eece2
+[4/4] STEP 6/67: RUN set -euo pipefail;     apt-get update && apt-get install -y --no-install-recommends         apt-utils         curl         wget         git         gnupg2         lsb-release         xz-utils         ca-certificates         wordlists         httpie         jq         unzip         p7zip-full         binutils         vim         nano
+--> Using cache ebcdbe0a0afc3ca7f69bc72665c3f2b7421434e319dc22d380910245c4192f62
+--> ebcdbe0a0afc
+[4/4] STEP 7/67: RUN apt-get install -y --no-install-recommends         nodejs         npm         default-jdk         ruby-full         pipx         python3-venv         python3-pip         build-essential         python3-dev         g++
+--> Using cache 6bfe5c49eb1cc187183509c19992c0b13532ffb3ceb7aa1922ee5105e9769344
+--> 6bfe5c49eb1c
+[4/4] STEP 8/67: ENV PIPX_DEFAULT_PYTHON=/usr/bin/python3
+--> Using cache 108e2fad61992c5b090e93ce3cf065256023145f038a961502d6fd17f950ad99
+--> 108e2fad6199
+[4/4] STEP 9/67: ENV npm_config_python=/usr/bin/python3
+--> Using cache 650e4dd1e5c0bcf931993bfc2eacc7e38590792a7c6eb1c3f2d4bcc610154124
+--> 650e4dd1e5c0
+[4/4] STEP 10/67: ENV PYTHON=/usr/bin/python3
+--> Using cache 60b3f8d7a342e3a2642cfe27094efa85ed399c5f469b32298e8650a72af71bea
+--> 60b3f8d7a342
+[4/4] STEP 11/67: ENV VIRTUAL_ENV=/opt/hexstrike/venv
+--> Using cache c17c1c0118d2522f392b07ea7bf331689c8874bcb0940893fdac6a4ac0fe1ee1
+--> c17c1c0118d2
+[4/4] STEP 12/67: ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+--> Using cache 16526f20a97a776e8b66b7fd294b91886da740b37672594944250e4d839bfdf0
+--> 16526f20a97a
+[4/4] STEP 13/67: RUN /usr/bin/python3 -m venv "$VIRTUAL_ENV"  && . "$VIRTUAL_ENV/bin/activate"  && pip install --no-cache-dir --upgrade pip setuptools wheel
+--> Using cache 8d3eee984cad1c45afba29f83380218d2ee78585d7d8c00cf94661aec2d5de47
+--> 8d3eee984cad
+[4/4] STEP 14/67: ENV PIP_DISABLE_PIP_VERSION_CHECK=1     PIP_DEFAULT_TIMEOUT=120     PIP_NO_PYTHON_VERSION_WARNING=1
+--> Using cache df1e7c88afa2242e2de2eb04a7fd2bcb456296c0f223e72a63a819ed5cb029f7
+--> df1e7c88afa2
+[4/4] STEP 15/67: ENV PATH="${PATH}:/root/.local/bin"
+--> Using cache 3efe864fb191a2d6f84ae4a742eee0d92172cb894e3dbcd489b8cd4d472a0490
+--> 3efe864fb191
+[4/4] STEP 16/67: RUN apt-get install -y --no-install-recommends         ansible
+--> Using cache 42600a5741548387480fb74c959585a87dbb102337bd89262386f85122f8a882
+--> 42600a574154
+[4/4] STEP 17/67: RUN pipx install --pip-args="--no-cache-dir --prefer-binary" checkov     &&     pipx install --python /usr/local/bin/python3.12 --pip-args="--no-cache-dir --prefer-binary" prowler     &&     pipx install --pip-args="--no-cache-dir --prefer-binary" ScoutSuite  &&     pipx install --pip-args="--no-cache-dir --prefer-binary" kube-hunter &&     pipx install --pip-args="--no-cache-dir --prefer-binary" shodan      &&     pipx install --pip-args="--no-cache-dir --prefer-binary" censys
+creating virtual environment...
+creating shared libraries...
+upgrading shared libraries...
+installing checkov...
+done! ✨ 🌟 ✨
+  installed package checkov 3.2.484, installed using Python 3.13.7
+  These apps are now globally available
+    - checkov
+    - checkov.cmd
+creating virtual environment...
+installing prowler...
+done! ✨ 🌟 ✨
+  installed package prowler 5.12.3, installed using Python 3.12.12
+  These apps are now globally available
+    - prowler
+creating virtual environment...
+installing scoutsuite...
