@@ -187,6 +187,21 @@ docker compose -f docker/docker-compose.yml exec hexstrike-mcp-server \
 * `./data/zap` → `/root/.ZAP`
 * `./data/postgres` → `/var/lib/postgresql` (used by Clair and optional Metasploit DBs)
 
+## Appendix: kube-bench - Host socket enablement (Docker/Podman)
+
+`kube-bench` needs a Docker-compatible API socket available inside the container at `/var/run/docker.sock`.
+`docker-compose.yml` already mounts the socket. If you use Docker Engine, nothing to do. If you use Podman, enable the socket:
+
+```bash
+sudo systemctl enable --now podman.socket
+```
+
+Test inside the container:
+
+```bash
+sudo docker exec -it hexstrike-mcp-server bash
+docker ps
+```
 
 ### Installation and Setting Up Guide for various AI Clients:
 
@@ -315,7 +330,16 @@ Configure VS Code settings in `.vscode/settings.json`:
   "inputs": []
 }
 ```
-
+### VS Code ChatGPT Codex Integration
+Configure Codex settings in `~/.codex/config.toml`
+```yaml
+[mcp_servers.hexstrike-ai]
+command = "python3"
+args = ["-X","utf8",
+  "/path/to/hexstrike-ai/hexstrike_mcp.py",
+  "--server","http://127.0.0.1:8888"
+]
+```
 ---
 
 ## Features

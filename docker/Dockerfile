@@ -227,6 +227,7 @@ RUN cd /tmp && \
 # - responder: LLMNR, NBT-NS, and MDNS poisoner
 # - netexec: network authentication and execution toolkit
 # - enum4linux: Windows/Samba enumeration
+# - enum4linux-ng: Windows/Samba enumeration (next-gen)
 # - nbtscan: NetBIOS name scanner
 # - arp-scan: ARP network scanner
 # - samba-common-bin: Samba client utilities
@@ -253,6 +254,7 @@ RUN apt-get install -y --no-install-recommends \
         responder \
         netexec \
         enum4linux \
+        enum4linux-ng \
         nbtscan \
         arp-scan \
         samba-common-bin \
@@ -262,10 +264,6 @@ RUN apt-get install -y --no-install-recommends \
         net-tools \
         ethtool \
         traceroute
-
-# - enum4linux-ng: Windows/Samba enumeration (next-gen)
-# Install from git because APT package is obsolete
-RUN pip3 install --no-cache-dir git+https://github.com/cddmp/enum4linux-ng.git
 
 # - rustscan: modern and fast port scanner
 RUN tmp="$(mktemp -d)"; cd "$tmp"; \
@@ -288,7 +286,6 @@ RUN tmp="$(mktemp -d)"; cd "$tmp"; \
 # - xsser: cross-site scripting framework
 # - wfuzz: web application fuzzer
 # - dirb: web content scanner
-# - python3-requests-ntlm: NTLM authentication for Python requests reuired by dirsearch
 # - dirsearch: web path scanner
 # - nikto: web server scanner
 # - sqlmap: automated SQL injection tool
@@ -309,7 +306,6 @@ RUN apt-get install -y --no-install-recommends \
         xsser \
         wfuzz \
         dirb \
-        python3-requests-ntlm \
         dirsearch \
         nikto \
         sqlmap \
@@ -321,6 +317,12 @@ RUN apt-get install -y --no-install-recommends \
         whatweb \
         burpsuite \
         zaproxy
+
+# dirsearch requirements
+# - python3-requests-ntlm: NTLM authentication
+# - defusedxml: XML bomb protection for Python stdlib modules
+# - colorama: cross-platform terminal colors
+RUN python3 -m pip install --no-cache-dir requests-ntlm defusedxml colorama
 
 # - katana: next-generation web crawler and spider
 RUN set -euo pipefail; \
@@ -801,6 +803,8 @@ RUN set -eu; \
     ln -sf /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt \
           /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
 
+# Provide fix ExportProgramScript.java avoiding Ghidra NullPointerException
+COPY docker/files/ghidra/ExportProgramScript.java /usr/share/ghidra/Ghidra/Features/Base/ghidra_scripts/ExportProgramScript.java
 
 # ==============================================================================
 # Phase 17: Image Cleanup

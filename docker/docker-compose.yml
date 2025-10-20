@@ -49,7 +49,9 @@ services:
       # Necessay mounts for kube-bench that neeed host socket access
       - /var/run/docker.sock:/var/run/docker.sock        # Docker API socket (shim in case of Podman)
       # Add this volume below if you have podman
-      - /run/podman/podman.sock:/run/podman/podman.sock     # Podman API socket
+      - /run/podman/podman.sock:/run/podman/podman.sock  # Podman API socket
+      # Optional: mount kube-bench config. MCP client also can pass --config_dir for custom path
+      # - ../data/kube-bench:/etc/kube-bench
 
     # Restart policy suitable for production
     restart: unless-stopped

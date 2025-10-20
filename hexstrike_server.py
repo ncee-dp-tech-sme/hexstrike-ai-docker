@@ -10425,7 +10425,7 @@ def nmap():
     """Execute nmap scan with enhanced logging, caching, and intelligent error handling"""
     try:
         params = request.json
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         scan_type = params.get("scan_type", "-sCV")
         ports = params.get("ports", "")
         additional_args = params.get("additional_args", "-T4 -Pn")
@@ -10533,7 +10533,7 @@ def nuclei():
     """Execute Nuclei vulnerability scanner with enhanced logging and intelligent error handling"""
     try:
         params = request.json
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         severity = params.get("severity", "")
         tags = params.get("tags", "")
         template = params.get("template", "")
@@ -10638,7 +10638,7 @@ def trivy():
     try:
         params = request.json
         scan_type = params.get("scan_type", "image")  # image, fs, repo
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         output_format = params.get("output_format", "json")
         severity = params.get("severity", "")
         output_file = params.get("output_file", "")
@@ -11093,7 +11093,7 @@ def nikto():
     """Execute nikto with enhanced logging"""
     try:
         params = request.json
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         additional_args = params.get("additional_args", "")
 
         if not target:
@@ -11199,7 +11199,7 @@ def hydra():
     """Execute hydra with enhanced logging"""
     try:
         params = request.json
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         service = params.get("service", "")
         username = params.get("username", "")
         username_file = params.get("username_file", "")
@@ -11790,19 +11790,21 @@ def enum4linux_ng():
         if domain:
             command += f" -d {domain}"
 
-        # Add specific enumeration options
-        enum_options = []
-        if shares:
-            enum_options.append("S")
-        if users:
-            enum_options.append("U")
-        if groups:
-            enum_options.append("G")
-        if policy:
-            enum_options.append("P")
+        enum_flags = []
 
-        if enum_options:
-            command += f" -A {','.join(enum_options)}"
+        if shares:
+            enum_flags.append("-S")
+        if users:
+            enum_flags.append("-U")
+        if groups:
+            enum_flags.append("-G")
+        if policy:
+            enum_flags.append("-P")
+
+        if enum_flags:
+            command += " " + " ".join(enum_flags)
+        else:
+            command += " -A"
 
         if additional_args:
             command += f" {additional_args}"
@@ -12382,7 +12384,7 @@ def ghidra():
             command += f" -postScript {script_file}"
 
         if output_format == "xml":
-            command += f" -postScript ExportXml.java {project_dir}/analysis.xml"
+            command += f" -postScript ExportProgramScript.java {project_dir}/analysis.xml true"
 
         if additional_args:
             command += f" {additional_args}"
@@ -12814,7 +12816,7 @@ def dotdotpwn():
     """Execute DotDotPwn for directory traversal testing with enhanced logging"""
     try:
         params = request.json
-        target = params.get("target", "")
+        target = (params.get("target") or "").strip()
         module = params.get("module", "http")
         additional_args = params.get("additional_args", "")
 
@@ -12824,10 +12826,50 @@ def dotdotpwn():
                 "error": "Target parameter is required"
             }), 400
 
-        command = f"dotdotpwn -m {module} -h {target}"
+        host = target
+        port = None
+
+        if "://" in host:
+            parsed = urlparse(host)
+            host = parsed.hostname or host
+            port = parsed.port
+            if port is None:
+                if parsed.scheme == "https":
+                    port = 443
+                elif parsed.scheme == "http":
+                    port = 80
+        else:
+            host_part = host.split("/", 1)[0]
+            if ":" in host_part:
+                candidate_host, candidate_port = host_part.rsplit(":", 1)
+                if candidate_port.isdigit():
+                    host = candidate_host
+                    port = int(candidate_port)
+                else:
+                    host = host_part
+            else:
+                host = host_part
+
+        command = f"dotdotpwn -m {module}"
+
+        if module == "http-url":
+            url = target or ""
+            if "TRAVERSAL" not in url.upper():
+                separator = "&" if "?" in url else ("" if url.endswith("TRAVERSAL") else "?")
+                url = f"{url}{separator}TRAVERSAL"
+            command += f" -u {url}"
+            if url.lower().startswith("https://") and (not additional_args or " -S" not in additional_args):
+                command += " -S"
+        else:
+            command += f" -h {host}"
+
+        has_port_flag = bool(additional_args and re.search(r"(^|\s)(-x)\b", additional_args))
 
         if additional_args:
             command += f" {additional_args}"
+
+        if port and not has_port_flag and module != "http-url":
+            command += f" -x {port}"
 
         command += " -b"
 
