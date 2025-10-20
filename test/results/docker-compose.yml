@@ -32,6 +32,7 @@ services:
   # ---------------------------------------------------------------------------
   juice-shop:
     image: docker.io/bkimminich/juice-shop:latest
+    pull_policy: always
     container_name: hexstrike-juice-shop
     restart: unless-stopped
     networks: [hexstrike-lab]
@@ -50,6 +51,7 @@ services:
   # ---------------------------------------------------------------------------
   dvwa:
     image: docker.io/vulnerables/web-dvwa:latest
+    pull_policy: always
     container_name: hexstrike-dvwa
     restart: unless-stopped
     networks: [hexstrike-lab]
@@ -73,6 +75,7 @@ services:
 
   wp-db:
     image: docker.io/mysql:8.0
+    pull_policy: always
     container_name: hexstrike-wp-db
     restart: unless-stopped
     networks: [hexstrike-lab]

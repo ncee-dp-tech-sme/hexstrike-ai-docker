@@ -32,6 +32,7 @@ import hashlib
 import pickle
 import base64
 import queue
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
@@ -9897,6 +9898,40 @@ def execute_nmap_scan(target: str, params: dict):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def _auto_handle_gobuster_wildcard(url: str, mode: str, additional_args: str) -> Tuple[str, Optional[str]]:
+    """Ensure gobuster handles wildcard responses from targets like Juice Shop."""
+    additional_args = (additional_args or "").strip()
+
+    # Only dir mode needs 200-everywhere mitigation
+    if mode != "dir" or not url:
+        return additional_args, None
+
+    # Respect explicit user handling
+    wildcard_keywords = ["--wildcard", "--exclude-length", "--exclude-status", "-b", "--status-codes"]
+    if any(keyword in additional_args for keyword in wildcard_keywords):
+        return additional_args, None
+
+    candidate_flag: Optional[str] = None
+
+    try:
+        random_path = uuid.uuid4().hex[:12]
+        normalized = url if url.endswith('/') else f"{url}/"
+        probe_url = urllib.parse.urljoin(normalized, random_path)
+        response = requests.get(probe_url, timeout=5, verify=False)
+
+        # If the target reflects wildcard successes, reuse that body length
+        if response.status_code < 500 and response.content:
+            candidate_flag = f"--exclude-length {len(response.content)}"
+    except Exception as exc:
+        logger.debug(f"Gobuster wildcard probe failed ({exc}); falling back to --wildcard")
+
+    if not candidate_flag:
+        candidate_flag = "--wildcard"
+
+    adjusted_args = f"{additional_args} {candidate_flag}".strip()
+    return adjusted_args, candidate_flag
+
+
 def execute_gobuster_scan(target, params):
     """Execute gobuster scan with optimized parameters"""
     try:
@@ -9904,9 +9939,14 @@ def execute_gobuster_scan(target, params):
         wordlist = params.get('wordlist', '/usr/share/wordlists/dirb/common.txt')
         additional_args = params.get('additional_args', '')
 
+        adjusted_args, auto_flag = _auto_handle_gobuster_wildcard(target, mode, additional_args)
+
         cmd_parts = ['gobuster', mode, '-u', target, '-w', wordlist]
-        if additional_args:
-            cmd_parts.extend(additional_args.split())
+        if adjusted_args:
+            cmd_parts.extend(adjusted_args.split())
+
+        if auto_flag:
+            logger.info(f"🧪 Auto-adjusted Gobuster args with {auto_flag}")
 
         return execute_command(' '.join(cmd_parts))
     except Exception as e:
@@ -10441,6 +10481,8 @@ def gobuster():
         additional_args = params.get("additional_args", "")
         use_recovery = params.get("use_recovery", True)
 
+        adjusted_args, auto_flag = _auto_handle_gobuster_wildcard(url, mode, additional_args)
+
         if not url:
             logger.warning("🌐 Gobuster called without URL parameter")
             return jsonify({
@@ -10456,8 +10498,11 @@ def gobuster():
 
         command = f"gobuster {mode} -u {url} -w {wordlist}"
 
-        if additional_args:
-            command += f" {additional_args}"
+        if adjusted_args:
+            command += f" {adjusted_args}"
+
+        if auto_flag:
+            logger.info(f"🧪 Applied Gobuster auto-adjustment: {auto_flag}")
 
         logger.info(f"📁 Starting Gobuster {mode} scan: {url}")
 
@@ -10467,7 +10512,8 @@ def gobuster():
                 "target": url,
                 "mode": mode,
                 "wordlist": wordlist,
-                "additional_args": additional_args
+                "additional_args": adjusted_args,
+                "auto_adjustment": auto_flag
             }
             result = execute_command_with_recovery("gobuster", command, tool_params)
         else:
@@ -10922,10 +10968,10 @@ def falco():
         command = f"timeout {duration} falco"
 
         if config_file:
-            command += f" --config {config_file}"
+            command += f" -c {config_file}"
 
         if rules_file:
-            command += f" --rules {rules_file}"
+            command += f" -r {rules_file}"
 
         if output_format == "json":
             command += " --json"

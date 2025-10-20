@@ -47,7 +47,7 @@ services:
       # Mount workspace used by checkov_iac_scan as default location
       - ../data/workspace:/workspace:rw,Z
       # Necessay mounts for kube-bench that neeed host socket access
-      - /run/podman/podman.sock:/var/run/docker.sock        # Docker API socket (shim in case of Podman)
+      - /var/run/docker.sock:/var/run/docker.sock        # Docker API socket (shim in case of Podman)
       # Add this volume below if you have podman
       - /run/podman/podman.sock:/run/podman/podman.sock     # Podman API socket
 
@@ -124,6 +124,7 @@ services:
   # ------------------------------------------------------------------------------
   hexstrike-clair:
     image: quay.io/projectquay/clair:4.8.0
+    pull_policy: always
     container_name: hexstrike-clair
     restart: unless-stopped
     network_mode: "host"
@@ -145,7 +146,7 @@ services:
   # ----------------------------------------------------------------------------
   hexstrike-postgres:
     image: docker.io/postgres:18
-    pull_policy: missing
+    pull_policy: always
     container_name: hexstrike-postgres
     restart: unless-stopped
     user: "999:999"
