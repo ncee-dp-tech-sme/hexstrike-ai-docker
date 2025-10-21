@@ -126,27 +126,31 @@ source hexstrike-env/bin/activate  # Linux/Mac
 pip3 install -r requirements.txt
 
 ```
+Ecco la versione corretta (inglese, struttura invariata):
+
+````markdown
 ### 🐳 Docker Installation
 
-**Quick start**
-*Note:* the helper scripts use `sudo` and the container runs in `privileged` mode to guarantee all capabilities such as raw-socket capability requirements for pentesting tools. Container hardening is possiblme in base of your requirements but checks are neeed. Check docker-compose.yml for the capability details.
+**Quick start**  
+*Note:* The helper scripts use `sudo`, and the container runs in `privileged` mode to ensure access to required capabilities (for example, the raw socket capability used by pentesting tools). You can harden the container based on your requirements, but additional checks are needed. See `docker-compose.yml` for capability details.
 
 Rationale:
-- Use Kali Linux latest astable version
-- Have all latest tools installed with the official steps (apt, release github, compilation only if necessary).
-- Have a consistent pre-built, pre-configured and replicable environment including all the necessary tools.
+- Use the latest stable release of Kali Linux.
+- Install the latest tools using official methods (apt, official GitHub releases; compile only when necessary).
+- Provide a consistent, prebuilt, preconfigured, and reproducible environment that includes all required tools.
 
 ```bash
 # 1) Clone the repository
 git clone https://github.com/0x4m4/hexstrike-ai.git
 cd hexstrike-ai
+chmod +x ./docker/*.sh
 
 # 2) Build the Docker image
 ./docker/build-docker-image.sh
 
 # 3) Start the MCP server (host networking, privileged, caches persisted)
 ./docker/start-docker-mcp-server.sh
-```
+````
 
 **Verify installation**
 
@@ -154,10 +158,11 @@ cd hexstrike-ai
 # Health endpoint
 curl http://localhost:8888/health
 ```
-### Update tool caches (on demand, safe to run anytime)
 
-The server starts immediately; a one-shot background warm-up runs automatically.
-To refresh caches explicitly (e.g., before a batch of scans):
+### Update tool caches and databases
+
+The server starts immediately; a one-time background warmup runs automatically.
+To refresh caches explicitly (for example, before a batch of scans):
 
 ```bash
 # Docker
@@ -167,8 +172,8 @@ docker compose -f docker/docker-compose.yml exec hexstrike-mcp-server \
 
 #### What gets updated
 
-* WPScan vulnerability DB
-* Trivy DB
+* WPScan vulnerability database
+* Trivy database
 * Nuclei templates
 * ExploitDB (searchsploit)
 * Nikto signatures
@@ -185,12 +190,12 @@ docker compose -f docker/docker-compose.yml exec hexstrike-mcp-server \
 * `./data/exploitdb` → `/usr/share/exploitdb`
 * `./data/nikto` → `/var/lib/nikto`
 * `./data/zap` → `/root/.ZAP`
-* `./data/postgres` → `/var/lib/postgresql` (used by Clair and optional Metasploit DBs)
+* `./data/postgres` → `/var/lib/postgresql` (used by Clair and optional Metasploit databases)
 
 ## Appendix: kube-bench - Host socket enablement (Docker/Podman)
 
 `kube-bench` needs a Docker-compatible API socket available inside the container at `/var/run/docker.sock`.
-`docker-compose.yml` already mounts the socket. If you use Docker Engine, nothing to do. If you use Podman, enable the socket:
+`docker-compose.yml` already mounts the socket. If you use Docker Engine, nothing else to do. If you use Podman, enable the socket:
 
 ```bash
 sudo systemctl enable --now podman.socket
