@@ -20,4 +20,4 @@ mkdir -p \
 
 sudo docker-compose \
   -f "./docker-compose.yml" \
-  up -d --force-recreate
+  up -d --force-recreate 

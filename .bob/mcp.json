@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+        "hexstrike-ai": {
+            "alwaysAllow": [],
+            "args": [
+                "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_mcp.py",
+                "--server",
+                "http://127.0.0.1:8888",
+                "--timeout",
+                "1200"
+            ],
+            "command": "python3",
+            "description": "HexStrike AI v6.0 - Advanced Cybersecurity Automation Platform",            
+            "disabled": false,
+            "timeout": 1200
+        }
+    }
+}

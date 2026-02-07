@@ -457,6 +457,7 @@ RUN apt-get install -y --no-install-recommends \
 # - apktool: Android APK analysis
 # - android-tools-adb: Android Debug Bridge
 # - xxd: hex dump utility
+#  outguess \ removed
 RUN apt-get install -y --no-install-recommends \
         gdb \
         radare2 \
@@ -469,7 +470,6 @@ RUN apt-get install -y --no-install-recommends \
         ropper \
         autopsy \
         sleuthkit \
-        outguess \
         testdisk \
         scalpel \
         bulk-extractor \
@@ -834,6 +834,7 @@ VOLUME ["/root/.cache/trivy", \
 COPY hexstrike_server.py /opt/hexstrike/
 
 # Expose MCP server port
+EXPOSE 5432
 EXPOSE 8888
 
 # Copy optimized entrypoint that pre-warms local caches and starts the MCP server

@@ -55,7 +55,11 @@ services:
 
     # Restart policy suitable for production
     restart: unless-stopped
-
+   # Restart policy suitable for development
+    ports:
+      - 8888:8888
+    expose:
+      - "8888"
     # Health check configuration
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
@@ -130,6 +134,9 @@ services:
     container_name: hexstrike-clair
     restart: unless-stopped
     network_mode: "host"
+    expose:
+      - "6060"
+      - "6061"
     volumes:
       - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
     command: ["-conf=/etc/clair/config.yaml"]
@@ -142,6 +149,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    
 
   # ----------------------------------------------------------------------------
   # PostgreSQL 18 — local DB for Clair (and optional Metasploit)
@@ -157,6 +165,8 @@ services:
     # Bind Postgres only to localhost on host network
     network_mode: "host"
     command: ["-c", "listen_addresses=127.0.0.1"]
+    expose:
+      - "5432"
     volumes:
       # DB init scripts live here (create users/databases, etc.)
       - ./config/db-init:/docker-entrypoint-initdb.d:ro,Z
@@ -167,3 +177,4 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+   

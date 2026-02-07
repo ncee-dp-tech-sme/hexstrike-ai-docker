@@ -1,0 +1,4 @@
+.env
+docker/.env
+# Allow access to pentest mode rules
+!.bob/rules-pentest/
