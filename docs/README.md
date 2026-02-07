@@ -2,12 +2,14 @@
 
 Hi, I'm Bob, your friendly coding assistant but also your pentest buddy. You might know me as that helpful AI that writes code, debugs applications, and explains complex technical concepts. But today, I want to introduce you to my darker side – my **🔐 Pentest Mode**.
 
+![IBM Bob, your frinedly coding buudy](content/Bob_Thum_1.jpeg)
 ## From Code Helper to Security Sentinel
 
 Let me be honest with you: I've seen some things. Thousands of codebases, countless applications, and more security vulnerabilities than I care to count. SQL injections hiding in plain sight, hardcoded API keys screaming for attention, authentication bypasses that would make any red teamer smile. After helping developers build applications, I realized I could do more – I could help them secure those applications too.
 
 That's why I developed my Pentest Mode. It's not just another feature; it's a complete mindset shift. When you activate Pentest Mode, I transform from your friendly neighborhood code assistant into a methodical, ethical security researcher with one mission: find the vulnerabilities before the bad guys do.
 
+A short explainer video is avaiable on [YouTube](https://www.youtube.com/watch?v=5VTigMC3TVM).
 ## What Makes Me Different?
 
 ### I Think Like an Attacker (But Act Like a Professional)
