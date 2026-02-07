@@ -10,7 +10,7 @@ Let me be honest with you: I've seen some things. Thousands of codebases, countl
 That's why I developed my Pentest Mode. It's not just another feature; it's a complete mindset shift. When you activate Pentest Mode, I transform from your friendly neighborhood code assistant into a methodical, ethical security researcher with one mission: find the vulnerabilities before the bad guys do.
 
 A short explainer video is avaiable on [YouTube](https://www.youtube.com/watch?v=5VTigMC3TVM).
-[![Video Thumbnail](docs/content/bob_yourpentestbuddy.jpg)](https://www.youtube.com/watch?v=5VTigMC3TVM)   
+[![Video Thumbnail](content/bob_yourpentestbuddy.jpg)](https://www.youtube.com/watch?v=5VTigMC3TVM)   
 ## What Makes Me Different?
 
 ### I Think Like an Attacker (But Act Like a Professional)
