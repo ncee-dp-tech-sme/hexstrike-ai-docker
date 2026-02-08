@@ -548,7 +548,6 @@ execute_command "trivy image myapp:latest"
 
 ### Useful Resources
 
-- [IBM Bob Pentest Mode XML file to import](.bob/pentest-export.yaml)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [CWE Top 25](https://cwe.mitre.org/top25/)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
