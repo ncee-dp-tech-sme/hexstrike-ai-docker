@@ -524,7 +524,7 @@ Stay secure,
 
 ---
 
-*P.S. - Remember, I'm bound by ethics and law. I will never help with unauthorized testing, malicious activities, or anything that could harm others. I'm here to make the internet safer, one codebase at a time.*
+*P.S. - Remember, I'm bound by ethics and law. I will never help with unauthorized testing, malicious activities, or anything that could harm others. I'm here to make the internet safer, one codebase at a time. Whenever you suspect the actions I take might be unethical or unlawful, stop the tasks running IMMEDIATELY. You as my human handler has the final say*
 
 ---
 
@@ -548,14 +548,19 @@ execute_command "trivy image myapp:latest"
 
 ### Useful Resources
 
+- [IBM Bob Pentest Mode XML file to import](.bob/pentest-export.yaml)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [CWE Top 25](https://cwe.mitre.org/top25/)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
 - [HexStrike AI Documentation](README.md)
+- [Vulnerable apps to benchmark your scanners and your skills](https://pentest-ground.com/)
 
-### Contact & Support
+### Contact & Support & DISCLAIMERS
 
+- Original MCP Server cloned from [https://github.com/hexstrike/mcp-server](https://github.com/alfonsoalongi/hexstrike-ai)
+- IBM Bob is a yet to be released IDE from IBM.  Non IBMers can use this project to get a feel for what IBM Bob will be like after registering at [IBM Bob Sign up page](https://www.ibm.com/products/bob) and join the waitlist. IBMers should go to the internal registration page.
 - GitHub Issues: Report bugs or request features
 - Documentation: Check the [rules-pentest](.bob/rules-pentest/) directory
 - Community: Share your security findings (responsibly!)
 - This Bob mode is created by Erwin Friethoff, Security Architect at IBM.  This is 100% free and open source and not in any way endorsed by IBM.  All done on personal title. If you have any questions, please reach out to me on LinkedIn. I'm happy to help.
+- 100% free and open source. No warranty. Use at your own risk.
