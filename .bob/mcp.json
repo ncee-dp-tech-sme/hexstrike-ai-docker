@@ -7,12 +7,12 @@
                 "--server",
                 "http://127.0.0.1:8888",
                 "--timeout",
-                "1200"
+                "1800"
             ],
             "command": "python3",
-            "description": "HexStrike AI v6.0 - Advanced Cybersecurity Automation Platform",            
+            "description": "HexStrike AI v6.0 - Advanced Cybersecurity Automation Platform",
             "disabled": false,
-            "timeout": 1200
+            "timeout": 1800
         }
     }
 }

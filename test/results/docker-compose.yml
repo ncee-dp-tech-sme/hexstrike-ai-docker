@@ -19,12 +19,11 @@
 # - WordPress: setup wizard appears on each (re)start (clean slate).
 # ==============================================================================
 
-version: "3.8"
+#version: "3.8"
 
 networks:
-  hexstrike-lab:
-    driver: bridge
-
+  podman:
+    
 services:
 
   # ---------------------------------------------------------------------------
@@ -35,10 +34,11 @@ services:
     pull_policy: always
     container_name: hexstrike-juice-shop
     restart: unless-stopped
-    networks: [hexstrike-lab]
+    networks: 
+      - podman
     # Bind ONLY on loopback (local machine)
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:3000"]
       interval: 20s
@@ -54,10 +54,11 @@ services:
     pull_policy: always
     container_name: hexstrike-dvwa
     restart: unless-stopped
-    networks: [hexstrike-lab]
+    networks: 
+      - podman
     # Bind ONLY on loopback
     ports:
-      - "127.0.0.1:4280:80"
+      - "4280:80"
     environment:
       # Optional toggles (can also be set from UI)
       - PHPIDS=false        # disable PHPIDS by default
@@ -78,7 +79,8 @@ services:
     pull_policy: always
     container_name: hexstrike-wp-db
     restart: unless-stopped
-    networks: [hexstrike-lab]
+    networks: 
+      - podman
     environment:
       - MYSQL_DATABASE=wordpress
       - MYSQL_USER=wpuser
@@ -100,10 +102,11 @@ services:
     depends_on:
       wp-db:
         condition: service_healthy
-    networks: [hexstrike-lab]
+    networks:
+      - podman
     # Bind ONLY on loopback
     ports:
-      - "127.0.0.1:8081:80"
+      - "8081:80"
     environment:
       - WORDPRESS_DB_HOST=wp-db:3306
       - WORDPRESS_DB_NAME=wordpress
