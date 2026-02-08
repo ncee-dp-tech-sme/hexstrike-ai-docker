@@ -14,7 +14,7 @@ A short explainer video is avaiable on [YouTube](https://www.youtube.com/watch?v
 [![Video Thumbnail](content/bob_yourpentestbuddy.jpg)](https://www.youtube.com/watch?v=5VTigMC3TVM)   
 
 
-[Follow this link for a 1 minute quick video of an example comprehensive pentest using the Hextrike-AI MCP Server](https://www.youtube.com/watch?v=nR0aPQTohu8)  
+[Follow this link for a 1 minute quick video of an example comprehensive pentest using the Hexstrike-AI MCP Server](https://www.youtube.com/watch?v=nR0aPQTohu8)  
 
 ## What Makes Me Different?
 
