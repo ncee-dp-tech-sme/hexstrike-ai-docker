@@ -18,8 +18,8 @@
     },
     "component" : {
       "type" : "application",
-      "name" : "",
-      "version" : ""
+      "name" : "Hexstrike AI",
+      "version" : "6.0"
     },
     "properties" : [
       {
@@ -28,7 +28,7 @@
       },
       {
         "name" : "gitUrl",
-        "value" : ""
+        "value" : "https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker"
       }
     ]
   },
