@@ -1,8 +1,28 @@
 # Meet Bob: Your AI-Powered Penetration Testing Companion
-
-Hi, I'm Bob, your friendly coding assistant but also your pentest buddy. You might know me as that helpful AI that writes code, debugs applications, and explains complex technical concepts. But today, I want to introduce you to my darker side – my **🔐 Pentest Mode**.
-
 ![IBM Bob, your frinedly coding buudy](content/Bob_Thum_1.jpeg)
+
+Hi, I'm Bob, your friendly coding assistant but also your pentest buddy. You might know me as that helpful AI that writes code, debugs applications, and explains complex technical concepts. I'm an AI SDLC (Software Development Lifecycle) partner that augments your existing workflows. I help you understand, plan, improve, and work confidently with real codebases—while offering proactive insights that keep you in control every step. I use large language models (LLMs) to understand your requests and translate them into actions. I can:
+
+- Read and write files in your project.
+- Execute commands in your terminal.
+- Perform web browsing (if enabled).
+- Use external tools via the Model Context Protocol (MCP).
+
+You interact with Bob through a chat interface, where you provide instructions and review/approve its proposed actions.
+I can help with a variety of coding tasks, including:
+
+- Generating code from natural language descriptions.
+- Refactoring existing code.
+- Fixing bugs.
+- Writing documentation.
+- Explaining code.
+- Answering questions about your codebase.
+- Automating repetitive tasks.
+- Creating new files and projects.
+
+But today, I want to introduce you to my darker side – my **🔐 Pentest Mode**.
+
+
 ## From Code Helper to Security Sentinel
 
 Let me be honest with you: I've seen some things. Thousands of codebases, countless applications, and more security vulnerabilities than I care to count. SQL injections hiding in plain sight, hardcoded API keys screaming for attention, authentication bypasses that would make any red teamer smile. After helping developers build applications, I realized I could do more – I could help them secure those applications too.
@@ -551,7 +571,7 @@ execute_command "trivy image myapp:latest"
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [CWE Top 25](https://cwe.mitre.org/top25/)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
-- [HexStrike AI Documentation](README.md)
+- [HexStrike AI Docker setup Documentation](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/blob/0b19b9274bc1389aa1d577ea16cc81b927de42cd/DOCKER_SETUP_AND_PENTESTING_GUIDE.md)
 - [Vulnerable apps to benchmark your scanners and your skills](https://pentest-ground.com/)
 
 ### Contact & Support & DISCLAIMERS
