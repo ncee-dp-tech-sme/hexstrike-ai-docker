@@ -18,5 +18,5 @@ Port_Scan_Report_qradar.cool8.nl.md
 pentest_runs/
 logs/
 Network_Scan_Report_192.168.1.0_24.md
-qs_scan_result/*
+/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/qs_scan_result/*
 
