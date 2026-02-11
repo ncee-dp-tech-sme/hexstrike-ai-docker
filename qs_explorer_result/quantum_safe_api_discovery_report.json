@@ -1,0 +1,129 @@
+{
+    "children": [
+        {
+            "file_type": "py",
+            "findings": [
+                {
+                    "Asset_Type": "algorithm",
+                    "Function_Name": "hashlib.md5",
+                    "Library": "hashlib",
+                    "Location": "hexstrike_server.py",
+                    "Parent": "hexstrike_server.py:6682",
+                    "id": "0"
+                },
+                {
+                    "Asset_Type": "algorithm",
+                    "Function_Name": "hashlib.hash.hexdigest",
+                    "Library": "hashlib",
+                    "Location": "hexstrike_server.py",
+                    "Parent": "hexstrike_server.py:6682",
+                    "id": "1"
+                }
+            ],
+            "statistics": {
+                "Algorithms": {},
+                "Crypto_calls": 2,
+                "Crypto_evidences": 0,
+                "Crypto_vulnerabilities": 0,
+                "External_functions": 4451,
+                "Files": {
+                    "hexstrike_server.py": 2
+                },
+                "Files_scanned": 3,
+                "Function_calls": 4451,
+                "Instances": {
+                    "hashlib.hash.hexdigest": 1,
+                    "hashlib.md5": 1
+                },
+                "Libraries": {
+                    "hashlib": 2
+                },
+                "Lines_scanned": 7402,
+                "Methods_scanned": 610,
+                "Non_quantum_safe_algorithms": 0,
+                "Quantum_safe_algorithms": 0
+            }
+        },
+        {
+            "file_type": "java",
+            "findings": [],
+            "statistics": {
+                "Algorithms": {},
+                "Crypto_calls": 0,
+                "Crypto_evidences": 0,
+                "Crypto_vulnerabilities": 0,
+                "External_functions": 43,
+                "Files": {},
+                "Files_scanned": 1,
+                "Function_calls": 43,
+                "Instances": {},
+                "Libraries": {},
+                "Lines_scanned": 105,
+                "Methods_scanned": 2,
+                "Non_quantum_safe_algorithms": 0,
+                "Quantum_safe_algorithms": 0
+            }
+        },
+        {
+            "file_type": "Go",
+            "findings": [],
+            "statistics": {
+                "Algorithms": {},
+                "Crypto_calls": 0,
+                "Crypto_evidences": 0,
+                "Crypto_vulnerabilities": 0,
+                "External_functions": 0,
+                "Files": {},
+                "Files_scanned": 0,
+                "Function_calls": 0,
+                "Instances": {},
+                "Libraries": {},
+                "Lines_scanned": 0,
+                "Methods_scanned": 0,
+                "Non_quantum_safe_algorithms": 0,
+                "Quantum_safe_algorithms": 0
+            }
+        },
+        {
+            "file_type": "c",
+            "findings": [],
+            "statistics": {
+                "Algorithms": {},
+                "Crypto_calls": 0,
+                "Crypto_evidences": 0,
+                "Crypto_vulnerabilities": 0,
+                "External_functions": 0,
+                "Files": {},
+                "Files_scanned": 0,
+                "Function_calls": 0,
+                "Instances": {},
+                "Libraries": {},
+                "Lines_scanned": 0,
+                "Methods_scanned": 0,
+                "Non_quantum_safe_algorithms": 0,
+                "Quantum_safe_algorithms": 0
+            }
+        },
+        {
+            "file_type": "Go",
+            "findings": [],
+            "statistics": {
+                "Algorithms": {},
+                "Crypto_calls": 0,
+                "Crypto_evidences": 0,
+                "Crypto_vulnerabilities": 0,
+                "External_functions": 0,
+                "Files": {},
+                "Files_scanned": 0,
+                "Function_calls": 0,
+                "Instances": {},
+                "Libraries": {},
+                "Lines_scanned": 0,
+                "Methods_scanned": 0,
+                "Non_quantum_safe_algorithms": 0,
+                "Quantum_safe_algorithms": 0
+            }
+        }
+    ],
+    "folderPath": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker"
+}

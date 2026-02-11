@@ -1,0 +1,128 @@
+{
+  "children": [
+    {
+      "file_type": "py",
+      "statistics": {
+        "Lines_scanned": 7402,
+        "Files_scanned": 3,
+        "Methods_scanned": 610,
+        "External_functions": 4451,
+        "Crypto_evidences": 0,
+        "Crypto_vulnerabilities": 0,
+        "Crypto_calls": 2,
+        "Function_calls": 4451,
+        "Quantum_safe_algorithms": 0,
+        "Non_quantum_safe_algorithms": 0,
+        "Algorithms": {},
+        "Instances": {
+          "hashlib.hash.hexdigest": 1,
+          "hashlib.md5": 1
+        },
+        "Libraries": {
+          "hashlib": 2
+        },
+        "Files": {
+          "hexstrike_server.py": 2
+        }
+      },
+      "findings": [
+        {
+          "id": "0",
+          "Function_Name": "hashlib.md5",
+          "Asset_Type": "algorithm",
+          "Library": "hashlib",
+          "Parent": "hexstrike_server.py:6682",
+          "Location": "hexstrike_server.py"
+        },
+        {
+          "id": "1",
+          "Function_Name": "hashlib.hash.hexdigest",
+          "Asset_Type": "algorithm",
+          "Library": "hashlib",
+          "Parent": "hexstrike_server.py:6682",
+          "Location": "hexstrike_server.py"
+        }
+      ]
+    },
+    {
+      "file_type": "java",
+      "statistics": {
+        "Lines_scanned": 105,
+        "Files_scanned": 1,
+        "Methods_scanned": 2,
+        "External_functions": 43,
+        "Crypto_evidences": 0,
+        "Crypto_vulnerabilities": 0,
+        "Crypto_calls": 0,
+        "Function_calls": 43,
+        "Quantum_safe_algorithms": 0,
+        "Non_quantum_safe_algorithms": 0,
+        "Algorithms": {},
+        "Instances": {},
+        "Libraries": {},
+        "Files": {}
+      },
+      "findings": []
+    },
+    {
+      "file_type": "Go",
+      "statistics": {
+        "Lines_scanned": 0,
+        "Files_scanned": 0,
+        "Methods_scanned": 0,
+        "External_functions": 0,
+        "Crypto_evidences": 0,
+        "Crypto_vulnerabilities": 0,
+        "Crypto_calls": 0,
+        "Function_calls": 0,
+        "Quantum_safe_algorithms": 0,
+        "Non_quantum_safe_algorithms": 0,
+        "Algorithms": {},
+        "Instances": {},
+        "Libraries": {},
+        "Files": {}
+      },
+      "findings": []
+    },
+    {
+      "file_type": "c",
+      "statistics": {
+        "Lines_scanned": 0,
+        "Files_scanned": 0,
+        "Methods_scanned": 0,
+        "External_functions": 0,
+        "Crypto_evidences": 0,
+        "Crypto_vulnerabilities": 0,
+        "Crypto_calls": 0,
+        "Function_calls": 0,
+        "Quantum_safe_algorithms": 0,
+        "Non_quantum_safe_algorithms": 0,
+        "Algorithms": {},
+        "Instances": {},
+        "Libraries": {},
+        "Files": {}
+      },
+      "findings": []
+    },
+    {
+      "file_type": "Go",
+      "statistics": {
+        "Lines_scanned": 0,
+        "Files_scanned": 0,
+        "Methods_scanned": 0,
+        "External_functions": 0,
+        "Crypto_evidences": 0,
+        "Crypto_vulnerabilities": 0,
+        "Crypto_calls": 0,
+        "Function_calls": 0,
+        "Quantum_safe_algorithms": 0,
+        "Non_quantum_safe_algorithms": 0,
+        "Algorithms": {},
+        "Instances": {},
+        "Libraries": {},
+        "Files": {}
+      },
+      "findings": []
+    }
+  ]
+}

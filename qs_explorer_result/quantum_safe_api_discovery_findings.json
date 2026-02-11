@@ -1,0 +1,146 @@
+{
+    "applicationId": " ",
+    "applicationVersion": " ",
+    "children": [
+        {
+            "children": [
+                {
+                    "crypto_info": [
+                        {
+                            "call_line": 6682,
+                            "crypto_properties": {
+                                "assetType": "algorithm",
+                                "blockSize": "512",
+                                "digestSize": "128",
+                                "library": "hashlib",
+                                "name": "hashlib.md5",
+                                "oid": "1.2.840.113549.2.5",
+                                "primitive": "hash",
+                                "variant": "MD5"
+                            },
+                            "crypto_vulnerabilities": [
+                                {
+                                    "classification": "cwe327",
+                                    "debugMessage": "Use of broken or risky cryptographic algorithm: MD5",
+                                    "references": [
+                                        {
+                                            "context": {
+                                                "location": {
+                                                    "endColumn": 27,
+                                                    "fileName": "hexstrike_server.py",
+                                                    "line": 6682,
+                                                    "startColumn": 24
+                                                }
+                                            },
+                                            "type": "variant",
+                                            "value": "MD5"
+                                        }
+                                    ],
+                                    "type": "Definitive",
+                                    "vulnerabilityDocumentationReference": "https://cwe.mitre.org/data/definitions/327.html",
+                                    "vulnerabilityId": "2",
+                                    "vulnerabilityScore": "high"
+                                },
+                                {
+                                    "classification": "cwe328",
+                                    "debugMessage": "Use of weak hash algorithm: MD5",
+                                    "references": [
+                                        {
+                                            "context": {
+                                                "location": {
+                                                    "endColumn": 27,
+                                                    "fileName": "hexstrike_server.py",
+                                                    "line": 6682,
+                                                    "startColumn": 24
+                                                }
+                                            },
+                                            "type": "variant",
+                                            "value": "MD5"
+                                        }
+                                    ],
+                                    "type": "Definitive",
+                                    "vulnerabilityDocumentationReference": "https://cwe.mitre.org/data/definitions/328.html",
+                                    "vulnerabilityId": "12",
+                                    "vulnerabilityScore": "high"
+                                }
+                            ],
+                            "end": 27,
+                            "endScoped": 27,
+                            "file_path": "hexstrike_server.py",
+                            "id": 0,
+                            "start": 24,
+                            "startScoped": 24,
+                            "title": "hashlib.md5",
+                            "tooltip": [
+                                "hashlib.md5"
+                            ]
+                        },
+                        {
+                            "call_line": 6682,
+                            "crypto_properties": {
+                                "assetType": "algorithm",
+                                "cryptoFunction": "digest",
+                                "library": "hashlib",
+                                "name": "hashlib.hash.hexdigest",
+                                "primitive": "hash"
+                            },
+                            "crypto_vulnerabilities": [
+                                {
+                                    "classification": "cwe759",
+                                    "debugMessage": "Hashes should include an unpredictable salt.",
+                                    "references": [
+                                        {
+                                            "context": {
+                                                "location": {
+                                                    "endColumn": 56,
+                                                    "fileName": "hexstrike_server.py",
+                                                    "line": 6682,
+                                                    "startColumn": 47
+                                                }
+                                            },
+                                            "type": "variant"
+                                        }
+                                    ],
+                                    "type": "Suggestive",
+                                    "vulnerabilityDocumentationReference": "https://cwe.mitre.org/data/definitions/759.html",
+                                    "vulnerabilityId": "10",
+                                    "vulnerabilityScore": "low"
+                                }
+                            ],
+                            "end": 56,
+                            "endScoped": 56,
+                            "file_path": "hexstrike_server.py",
+                            "id": 1,
+                            "start": 47,
+                            "startScoped": 47,
+                            "title": "hashlib.hash.hexdigest",
+                            "tooltip": [
+                                "hashlib.hash.hexdigest"
+                            ]
+                        }
+                    ],
+                    "file_id": "9e60b5ea-09b3-4961-a746-407ad5cdd8a8",
+                    "full_name": "hexstrike_server.py",
+                    "name": "hexstrike_server.py",
+                    "num_artifacts": 2
+                }
+            ],
+            "file_type": "py"
+        },
+        {
+            "file_type": "Go"
+        },
+        {
+            "file_type": "c"
+        },
+        {
+            "file_type": "Go"
+        }
+    ],
+    "name": "crypto artifacts",
+    "num_artifacts": 2,
+    "repositoryId": " ",
+    "repositoryUrl": " ",
+    "scanId": "1991e426-0a3e-4255-a08a-fdcfc42467c5",
+    "scanTime": "2026-02-11T21:32:51.676599Z"
+}

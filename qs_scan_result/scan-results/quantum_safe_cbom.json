@@ -1,0 +1,120 @@
+{
+  "bomFormat" : "CycloneDX",
+  "specVersion" : "1.6",
+  "serialNumber" : "20b711e1-dfbc-4cc0-801b-eb5f3eb41479",
+  "version" : 1,
+  "metadata" : {
+    "timestamp" : "2026-02-11T21:32:52Z",
+    "tools" : {
+      "services" : [
+        {
+          "provider" : {
+            "name" : "IBM Corporation."
+          },
+          "name" : "IBM Quantum Safe Explorer",
+          "version" : "2.2.5.0"
+        }
+      ]
+    },
+    "component" : {
+      "type" : "application",
+      "name" : "",
+      "version" : ""
+    },
+    "properties" : [
+      {
+        "name" : "language",
+        "value" : "python, Go, c, Go"
+      }
+    ]
+  },
+  "components" : [
+    {
+      "type" : "cryptographic-asset",
+      "bom-ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85",
+      "name" : "hashlib.md5",
+      "evidence" : {
+        "occurrences" : [
+          {
+            "location" : "hexstrike_server.py",
+            "line" : 6682,
+            "offset" : 24
+          }
+        ]
+      },
+      "cryptoProperties" : {
+        "assetType" : "algorithm",
+        "algorithmProperties" : {
+          "primitive" : "hash"
+        },
+        "oid" : "1.2.840.10045.4.3.2"
+      }
+    },
+    {
+      "type" : "cryptographic-asset",
+      "bom-ref" : "4202726d-8fa6-400f-8a84-7755cbfc6a38",
+      "name" : "hashlib.hash.hexdigest",
+      "evidence" : {
+        "occurrences" : [
+          {
+            "location" : "hexstrike_server.py",
+            "line" : 6682,
+            "offset" : 47
+          }
+        ]
+      },
+      "cryptoProperties" : {
+        "assetType" : "algorithm",
+        "algorithmProperties" : {
+          "primitive" : "hash",
+          "cryptoFunctions" : [
+            "digest"
+          ]
+        },
+        "oid" : "1.2.840.10045.4.3.2"
+      }
+    }
+  ],
+  "vulnerabilities" : [
+    {
+      "id" : "CWE-327",
+      "source" : {
+        "name" : "CWE",
+        "url" : "https://cwe.mitre.org/data/definitions/327.html"
+      },
+      "ratings" : [
+        {
+          "severity" : "high"
+        }
+      ],
+      "cwes" : [
+        327
+      ],
+      "affects" : [
+        {
+          "ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85"
+        }
+      ]
+    },
+    {
+      "id" : "CWE-328",
+      "source" : {
+        "name" : "CWE",
+        "url" : "https://cwe.mitre.org/data/definitions/328.html"
+      },
+      "ratings" : [
+        {
+          "severity" : "high"
+        }
+      ],
+      "cwes" : [
+        328
+      ],
+      "affects" : [
+        {
+          "ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85"
+        }
+      ]
+    }
+  ]
+}

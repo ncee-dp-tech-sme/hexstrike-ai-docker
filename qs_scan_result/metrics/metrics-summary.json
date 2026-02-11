@@ -1,0 +1,50 @@
+{
+  "mapCollections": {
+    "Go": {
+      "map": {}
+    },
+    "c": {
+      "map": {}
+    },
+    "java": {
+      "map": {
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/docker/files/ghidra/ExportProgramScript.java": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/docker/files/ghidra/ExportProgramScript.java",
+          "totalLinesOfCode": 0,
+          "activeLinesOfCode": 105,
+          "methodDefined": 2,
+          "methodCalls": 43,
+          "variables": 19
+        }
+      }
+    },
+    "py": {
+      "map": {
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py",
+          "totalLinesOfCode": 79,
+          "activeLinesOfCode": 29,
+          "methodDefined": 1,
+          "methodCalls": 5,
+          "variables": 14
+        },
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_mcp.py": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_mcp.py",
+          "totalLinesOfCode": 5456,
+          "activeLinesOfCode": 2659,
+          "methodDefined": 159,
+          "methodCalls": 1155,
+          "variables": 509
+        },
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_server.py": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_server.py",
+          "totalLinesOfCode": 17619,
+          "activeLinesOfCode": 4714,
+          "methodDefined": 450,
+          "methodCalls": 3291,
+          "variables": 2785
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "scanId": "bc8a5f8b-61eb-40c5-a097-076e080cb007",
+  "applicationId": " ",
+  "applicationVersion": " ",
+  "scanTime": "2026-02-11T21:32:51.675566Z",
+  "totalCryptoArtifacts": "2",
+  "findings": [
+    {
+      "fileType": "py",
+      "children": [
+        {
+          "fileName": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_server.py",
+          "cryptoArtifacts": 2,
+          "cryptoInfo": [
+            {
+              "functionName": "hashlib.md5",
+              "library": "hashlib",
+              "locations": [
+                {
+                  "line": 6682,
+                  "startColumn": 24,
+                  "endColumn": 27
+                }
+              ]
+            },
+            {
+              "functionName": "hashlib.hash.hexdigest",
+              "library": "hashlib",
+              "locations": [
+                {
+                  "line": 6682,
+                  "startColumn": 47,
+                  "endColumn": 56
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fileType": "java"
+    },
+    {
+      "fileType": "Go"
+    },
+    {
+      "fileType": "c"
+    },
+    {
+      "fileType": "Go"
+    }
+  ]
+}
