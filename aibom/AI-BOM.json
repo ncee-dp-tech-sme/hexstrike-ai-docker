@@ -1,0 +1,613 @@
+{
+  "bomFormat": "AI-BOM",
+  "specVersion": "1.0",
+  "serialNumber": "urn:uuid:hexstrike-ai-v6.0-2026-02-11",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-02-11T20:01:56Z",
+    "tools": [
+      {
+        "vendor": "HexStrike AI",
+        "name": "AI-BOM Generator",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "HexStrike AI MCP Agents",
+      "version": "6.0.0",
+      "description": "AI-Powered MCP Cybersecurity Automation Platform with 150+ security tools and 12+ autonomous AI agents",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.hexstrike.com"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/0x4m4/hexstrike-ai"
+        }
+      ]
+    }
+  },
+  "aiComponents": [
+    {
+      "type": "ai-framework",
+      "name": "FastMCP",
+      "version": ">=0.2.0,<1.0.0",
+      "description": "Model Context Protocol framework for AI agent communication",
+      "purpose": "Core MCP protocol implementation for AI agent orchestration",
+      "capabilities": [
+        "tool-orchestration",
+        "ai-agent-communication",
+        "protocol-handling"
+      ],
+      "dependencies": ["requests", "aiohttp"]
+    },
+    {
+      "type": "ai-agent",
+      "name": "IntelligentDecisionEngine",
+      "version": "6.0.0",
+      "description": "AI-powered tool selection and parameter optimization engine",
+      "purpose": "Autonomous decision-making for security testing workflows",
+      "capabilities": [
+        "tool-selection",
+        "parameter-optimization",
+        "context-analysis",
+        "adaptive-learning"
+      ],
+      "aiTechniques": [
+        "heuristic-analysis",
+        "pattern-matching",
+        "contextual-reasoning"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "BugBountyWorkflowManager",
+      "version": "6.0.0",
+      "description": "Specialized AI agent for bug bounty hunting workflows",
+      "purpose": "Automated bug bounty reconnaissance and vulnerability discovery",
+      "capabilities": [
+        "reconnaissance-automation",
+        "vulnerability-prioritization",
+        "workflow-orchestration",
+        "scope-management"
+      ],
+      "aiTechniques": [
+        "workflow-planning",
+        "priority-scoring",
+        "attack-surface-analysis"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "CTFWorkflowManager",
+      "version": "6.0.0",
+      "description": "AI agent for CTF challenge solving and automation",
+      "purpose": "Automated CTF challenge analysis and solution generation",
+      "capabilities": [
+        "challenge-analysis",
+        "exploit-generation",
+        "flag-extraction",
+        "technique-selection"
+      ],
+      "aiTechniques": [
+        "pattern-recognition",
+        "exploit-synthesis",
+        "automated-reasoning"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "CVEIntelligenceManager",
+      "version": "6.0.0",
+      "description": "Vulnerability intelligence and CVE monitoring agent",
+      "purpose": "Real-time CVE monitoring, analysis, and exploit correlation",
+      "capabilities": [
+        "cve-monitoring",
+        "vulnerability-analysis",
+        "exploit-correlation",
+        "threat-intelligence"
+      ],
+      "aiTechniques": [
+        "data-aggregation",
+        "severity-scoring",
+        "exploitability-analysis"
+      ],
+      "dataSources": [
+        "NVD",
+        "CVE Database",
+        "Exploit-DB",
+        "GitHub Security Advisories"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "AIExploitGenerator",
+      "version": "6.0.0",
+      "description": "Automated exploit generation from CVE information",
+      "purpose": "Generate working exploits with evasion techniques",
+      "capabilities": [
+        "exploit-generation",
+        "payload-crafting",
+        "evasion-techniques",
+        "code-synthesis"
+      ],
+      "aiTechniques": [
+        "code-generation",
+        "template-adaptation",
+        "evasion-optimization"
+      ],
+      "riskLevel": "high",
+      "ethicalConsiderations": "Requires authorization and proper oversight"
+    },
+    {
+      "type": "ai-agent",
+      "name": "VulnerabilityCorrelator",
+      "version": "6.0.0",
+      "description": "Multi-stage attack chain discovery agent",
+      "purpose": "Discover and correlate vulnerabilities for attack chains",
+      "capabilities": [
+        "vulnerability-correlation",
+        "attack-chain-discovery",
+        "success-probability-calculation",
+        "multi-stage-planning"
+      ],
+      "aiTechniques": [
+        "graph-analysis",
+        "path-finding",
+        "probability-modeling"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "TechnologyDetector",
+      "version": "6.0.0",
+      "description": "Technology stack identification and analysis",
+      "purpose": "Detect technologies and provide testing recommendations",
+      "capabilities": [
+        "technology-fingerprinting",
+        "version-detection",
+        "vulnerability-mapping",
+        "recommendation-generation"
+      ],
+      "aiTechniques": [
+        "fingerprinting",
+        "signature-matching",
+        "knowledge-base-lookup"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "RateLimitDetector",
+      "version": "6.0.0",
+      "description": "Rate limiting detection and adaptation",
+      "purpose": "Detect and adapt to rate limiting mechanisms",
+      "capabilities": [
+        "rate-limit-detection",
+        "adaptive-throttling",
+        "request-optimization"
+      ],
+      "aiTechniques": [
+        "pattern-detection",
+        "adaptive-algorithms",
+        "response-analysis"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "FailureRecoverySystem",
+      "version": "6.0.0",
+      "description": "Intelligent error handling and recovery",
+      "purpose": "Graceful degradation and automatic error recovery",
+      "capabilities": [
+        "error-detection",
+        "recovery-strategy-selection",
+        "graceful-degradation",
+        "alternative-approach-generation"
+      ],
+      "aiTechniques": [
+        "error-classification",
+        "strategy-selection",
+        "fallback-planning"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "PerformanceMonitor",
+      "version": "6.0.0",
+      "description": "System optimization and performance monitoring",
+      "purpose": "Monitor and optimize system performance",
+      "capabilities": [
+        "performance-monitoring",
+        "resource-optimization",
+        "bottleneck-detection",
+        "scaling-recommendations"
+      ],
+      "aiTechniques": [
+        "metrics-analysis",
+        "anomaly-detection",
+        "optimization-algorithms"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "ParameterOptimizer",
+      "version": "6.0.0",
+      "description": "Context-aware parameter optimization",
+      "purpose": "Optimize tool parameters based on target context",
+      "capabilities": [
+        "parameter-tuning",
+        "context-analysis",
+        "effectiveness-prediction",
+        "adaptive-configuration"
+      ],
+      "aiTechniques": [
+        "optimization-algorithms",
+        "contextual-reasoning",
+        "performance-prediction"
+      ]
+    },
+    {
+      "type": "ai-agent",
+      "name": "BrowserAgent",
+      "version": "6.0.0",
+      "description": "Headless browser automation for web security testing",
+      "purpose": "Automated web application inspection and security analysis",
+      "capabilities": [
+        "dom-analysis",
+        "javascript-execution",
+        "screenshot-capture",
+        "network-monitoring",
+        "form-detection",
+        "security-header-analysis"
+      ],
+      "aiTechniques": [
+        "dom-tree-analysis",
+        "behavior-analysis",
+        "vulnerability-detection"
+      ],
+      "dependencies": ["selenium", "beautifulsoup4", "webdriver-manager"]
+    }
+  ],
+  "dependencies": [
+    {
+      "type": "library",
+      "name": "flask",
+      "version": ">=2.3.0,<4.0.0",
+      "description": "Web framework for API server",
+      "purpose": "REST API implementation",
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}]
+    },
+    {
+      "type": "library",
+      "name": "requests",
+      "version": ">=2.31.0,<3.0.0",
+      "description": "HTTP library for API communication",
+      "purpose": "HTTP client operations",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "psutil",
+      "version": ">=5.9.0,<6.0.0",
+      "description": "System and process utilities",
+      "purpose": "Process management and system monitoring",
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}]
+    },
+    {
+      "type": "library",
+      "name": "beautifulsoup4",
+      "version": ">=4.12.0,<5.0.0",
+      "description": "HTML parsing library",
+      "purpose": "Web scraping and HTML analysis",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "selenium",
+      "version": ">=4.15.0,<5.0.0",
+      "description": "Browser automation framework",
+      "purpose": "Headless browser control for web testing",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "webdriver-manager",
+      "version": ">=4.0.0,<5.0.0",
+      "description": "ChromeDriver management",
+      "purpose": "Automatic browser driver management",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "aiohttp",
+      "version": ">=3.8.0,<4.0.0",
+      "description": "Async HTTP client/server",
+      "purpose": "Asynchronous HTTP operations",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    },
+    {
+      "type": "library",
+      "name": "mitmproxy",
+      "version": ">=9.0.0,<11.0.0",
+      "description": "HTTP proxy for traffic interception",
+      "purpose": "HTTP request/response interception and analysis",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "pwntools",
+      "version": ">=4.10.0,<5.0.0",
+      "description": "CTF framework and exploit development",
+      "purpose": "Binary exploitation and CTF automation",
+      "licenses": [{"license": {"id": "MIT"}}]
+    },
+    {
+      "type": "library",
+      "name": "angr",
+      "version": ">=9.2.0,<10.0.0",
+      "description": "Binary analysis platform",
+      "purpose": "Symbolic execution and binary analysis",
+      "licenses": [{"license": {"id": "BSD-2-Clause"}}]
+    },
+    {
+      "type": "library",
+      "name": "bcrypt",
+      "version": "4.0.1",
+      "description": "Password hashing library",
+      "purpose": "Cryptographic operations (pwntools dependency)",
+      "licenses": [{"license": {"id": "Apache-2.0"}}]
+    }
+  ],
+  "externalTools": {
+    "description": "150+ external security tools integrated via command-line execution",
+    "categories": [
+      {
+        "name": "Network & Reconnaissance",
+        "count": 25,
+        "tools": [
+          "nmap", "masscan", "rustscan", "autorecon", "amass", "subfinder",
+          "fierce", "dnsenum", "theharvester", "responder", "netexec",
+          "enum4linux-ng", "smbmap", "rpcclient", "nbtscan", "arp-scan"
+        ]
+      },
+      {
+        "name": "Web Application Security",
+        "count": 40,
+        "tools": [
+          "gobuster", "feroxbuster", "ffuf", "dirb", "dirsearch", "nuclei",
+          "nikto", "sqlmap", "wpscan", "arjun", "paramspider", "x8",
+          "katana", "httpx", "dalfox", "jaeles", "hakrawler", "gau",
+          "waybackurls", "wafw00f", "wfuzz", "burpsuite", "zap"
+        ]
+      },
+      {
+        "name": "Authentication & Password",
+        "count": 12,
+        "tools": [
+          "hydra", "john", "hashcat", "medusa", "patator", "netexec",
+          "evil-winrm", "hash-identifier", "ophcrack"
+        ]
+      },
+      {
+        "name": "Binary Analysis & Reverse Engineering",
+        "count": 25,
+        "tools": [
+          "ghidra", "radare2", "gdb", "gdb-peda", "binwalk", "ropgadget",
+          "ropper", "checksec", "strings", "objdump", "volatility3",
+          "foremost", "steghide", "exiftool", "msfvenom", "one-gadget",
+          "libc-database", "pwninit"
+        ]
+      },
+      {
+        "name": "Cloud & Container Security",
+        "count": 20,
+        "tools": [
+          "prowler", "scout-suite", "trivy", "clair", "kube-hunter",
+          "kube-bench", "docker-bench-security", "falco", "checkov",
+          "terrascan", "cloudmapper", "pacu"
+        ]
+      },
+      {
+        "name": "CTF & Forensics",
+        "count": 20,
+        "tools": [
+          "volatility3", "foremost", "steghide", "stegsolve", "zsteg",
+          "outguess", "exiftool", "binwalk", "scalpel", "autopsy",
+          "sleuthkit", "photorec", "testdisk"
+        ]
+      },
+      {
+        "name": "OSINT & Intelligence",
+        "count": 20,
+        "tools": [
+          "sherlock", "social-analyzer", "recon-ng", "maltego", "spiderfoot",
+          "shodan-cli", "censys-cli", "theharvester", "amass", "subfinder"
+        ]
+      }
+    ]
+  },
+  "aiCapabilities": {
+    "intelligentDecisionMaking": {
+      "description": "AI-powered tool selection and parameter optimization",
+      "features": [
+        "Context-aware tool selection",
+        "Automatic parameter tuning",
+        "Target profile analysis",
+        "Effectiveness prediction"
+      ]
+    },
+    "autonomousWorkflows": {
+      "description": "Self-directed security testing workflows",
+      "features": [
+        "Bug bounty automation",
+        "CTF challenge solving",
+        "Penetration testing orchestration",
+        "Adaptive testing strategies"
+      ]
+    },
+    "vulnerabilityIntelligence": {
+      "description": "Real-time vulnerability monitoring and analysis",
+      "features": [
+        "CVE feed monitoring",
+        "Exploit generation",
+        "Attack chain discovery",
+        "Threat correlation"
+      ]
+    },
+    "advancedAutomation": {
+      "description": "Browser and API automation capabilities",
+      "features": [
+        "Headless browser automation",
+        "DOM analysis",
+        "JavaScript execution monitoring",
+        "API security testing"
+      ]
+    }
+  },
+  "dataFlows": [
+    {
+      "source": "AI Agent (Claude/GPT/Copilot)",
+      "destination": "HexStrike MCP Server",
+      "protocol": "MCP (Model Context Protocol)",
+      "dataTypes": ["commands", "parameters", "context"],
+      "purpose": "AI agent communication and tool orchestration"
+    },
+    {
+      "source": "HexStrike MCP Server",
+      "destination": "External Security Tools",
+      "protocol": "CLI/Process Execution",
+      "dataTypes": ["commands", "scan-results", "vulnerability-data"],
+      "purpose": "Security tool execution and result collection"
+    },
+    {
+      "source": "Browser Agent",
+      "destination": "Target Web Applications",
+      "protocol": "HTTP/HTTPS",
+      "dataTypes": ["requests", "responses", "dom-data", "screenshots"],
+      "purpose": "Web application security testing"
+    },
+    {
+      "source": "CVE Intelligence Agent",
+      "destination": "External CVE Databases",
+      "protocol": "HTTPS/API",
+      "dataTypes": ["cve-data", "exploit-info", "vulnerability-feeds"],
+      "purpose": "Vulnerability intelligence gathering"
+    }
+  ],
+  "securityConsiderations": {
+    "riskLevel": "HIGH",
+    "warnings": [
+      "Provides AI agents with powerful system access",
+      "Can execute arbitrary security tools",
+      "Requires proper authorization for all testing",
+      "Should run in isolated environments",
+      "Implements autonomous exploit generation"
+    ],
+    "recommendations": [
+      "Run in dedicated security testing VMs",
+      "Implement proper authentication for production",
+      "Monitor AI agent activities through dashboards",
+      "Ensure written authorization before testing",
+      "Follow responsible disclosure practices"
+    ],
+    "ethicalGuidelines": {
+      "authorized": [
+        "Penetration testing with written authorization",
+        "Bug bounty programs within scope",
+        "CTF competitions",
+        "Security research on owned systems",
+        "Red team exercises with approval"
+      ],
+      "prohibited": [
+        "Unauthorized system testing",
+        "Malicious activities",
+        "Data theft or exfiltration",
+        "Illegal activities"
+      ]
+    }
+  },
+  "performanceMetrics": {
+    "improvements": {
+      "subdomainEnumeration": "24x faster than manual",
+      "vulnerabilityScanning": "16x faster than manual",
+      "webAppTesting": "18x faster than manual",
+      "ctfSolving": "24x faster than manual",
+      "reportGeneration": "144x faster than manual"
+    },
+    "successMetrics": {
+      "vulnerabilityDetectionRate": "98.7%",
+      "falsePositiveRate": "2.1%",
+      "attackVectorCoverage": "95%",
+      "ctfSuccessRate": "89%"
+    }
+  },
+  "deployment": {
+    "environments": [
+      {
+        "type": "docker",
+        "description": "Containerized deployment with Kali Linux base",
+        "features": [
+          "Privileged mode for raw socket access",
+          "Host networking",
+          "Persistent data volumes",
+          "Pre-configured tools"
+        ]
+      },
+      {
+        "type": "native",
+        "description": "Direct installation on host system",
+        "requirements": [
+          "Python 3.8+",
+          "150+ security tools",
+          "Chrome/Chromium browser",
+          "Sufficient system resources"
+        ]
+      }
+    ],
+    "integrations": [
+      {
+        "platform": "Claude Desktop",
+        "type": "MCP Client",
+        "status": "supported"
+      },
+      {
+        "platform": "VS Code Copilot",
+        "type": "MCP Client",
+        "status": "supported"
+      },
+      {
+        "platform": "Cursor",
+        "type": "MCP Client",
+        "status": "supported"
+      },
+      {
+        "platform": "Roo Code",
+        "type": "MCP Client",
+        "status": "supported"
+      }
+    ]
+  },
+  "additionalMetadata": {
+    "author": "m0x4m4",
+    "website": "https://www.hexstrike.com",
+    "repository": "https://github.com/0x4m4/hexstrike-ai",
+    "documentation": "https://github.com/0x4m4/hexstrike-ai/docs",
+    "license": "MIT",
+    "version": "6.0.0",
+    "releaseDate": "2024",
+    "nextVersion": "7.0.0",
+    "communitySupport": {
+      "discord": "https://discord.gg/BWnmrrSHbA",
+      "linkedin": "https://www.linkedin.com/company/hexstrike-ai"
+    }
+  }
+}
