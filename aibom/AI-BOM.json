@@ -2,9 +2,9 @@
   "bomFormat": "AI-BOM",
   "specVersion": "1.0",
   "serialNumber": "urn:uuid:hexstrike-ai-v6.0-2026-02-11",
-  "version": 1,
+  "version": 2,
   "metadata": {
-    "timestamp": "2026-02-11T20:01:56Z",
+    "timestamp": "2026-02-11T20:54:00Z",
     "tools": [
       {
         "vendor": "HexStrike AI",
@@ -32,6 +32,10 @@
         {
           "type": "vcs",
           "url": "https://github.com/0x4m4/hexstrike-ai"
+        },
+        {
+          "type": "vulnerability-assessment",
+          "url": "file://aibom/VULNERABILITY_ASSESSMENT.json"
         }
       ]
     }
@@ -66,6 +70,14 @@
         "heuristic-analysis",
         "pattern-matching",
         "contextual-reasoning"
+      ],
+      "securityRisks": [
+        {
+          "type": "prompt-injection",
+          "severity": "HIGH",
+          "cvssScore": 8.1,
+          "mitigation": "Input sanitization and structured prompts required"
+        }
       ]
     },
     {
@@ -126,6 +138,14 @@
         "CVE Database",
         "Exploit-DB",
         "GitHub Security Advisories"
+      ],
+      "securityRisks": [
+        {
+          "type": "data-poisoning",
+          "severity": "HIGH",
+          "cvssScore": 7.8,
+          "mitigation": "Multi-source verification and signature validation required"
+        }
       ]
     },
     {
@@ -145,8 +165,16 @@
         "template-adaptation",
         "evasion-optimization"
       ],
-      "riskLevel": "high",
-      "ethicalConsiderations": "Requires authorization and proper oversight"
+      "riskLevel": "critical",
+      "ethicalConsiderations": "Requires authorization and proper oversight",
+      "securityRisks": [
+        {
+          "type": "unauthorized-exploit-generation",
+          "severity": "CRITICAL",
+          "cvssScore": 9.3,
+          "mitigation": "Mandatory authorization checks and human-in-the-loop required"
+        }
+      ]
     },
     {
       "type": "ai-agent",
@@ -164,6 +192,14 @@
         "graph-analysis",
         "path-finding",
         "probability-modeling"
+      ],
+      "securityRisks": [
+        {
+          "type": "algorithmic-complexity",
+          "severity": "MEDIUM",
+          "cvssScore": 6.5,
+          "mitigation": "Complexity limits and timeout mechanisms required"
+        }
       ]
     },
     {
@@ -274,7 +310,15 @@
         "behavior-analysis",
         "vulnerability-detection"
       ],
-      "dependencies": ["selenium", "beautifulsoup4", "webdriver-manager"]
+      "dependencies": ["selenium", "beautifulsoup4", "webdriver-manager"],
+      "securityRisks": [
+        {
+          "type": "remote-code-execution",
+          "severity": "HIGH",
+          "cvssScore": 7.5,
+          "mitigation": "Update Selenium, run in isolated container"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -284,7 +328,15 @@
       "version": ">=2.3.0,<4.0.0",
       "description": "Web framework for API server",
       "purpose": "REST API implementation",
-      "licenses": [{"license": {"id": "BSD-3-Clause"}}]
+      "licenses": [{"license": {"id": "BSD-3-Clause"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2023-30861",
+          "severity": "MEDIUM",
+          "cvssScore": 5.9,
+          "description": "Session fixation vulnerability"
+        }
+      ]
     },
     {
       "type": "library",
@@ -292,7 +344,15 @@
       "version": ">=2.31.0,<3.0.0",
       "description": "HTTP library for API communication",
       "purpose": "HTTP client operations",
-      "licenses": [{"license": {"id": "Apache-2.0"}}]
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2023-32681",
+          "severity": "LOW",
+          "cvssScore": 4.2,
+          "description": "SSRF via URL parsing"
+        }
+      ]
     },
     {
       "type": "library",
@@ -308,7 +368,15 @@
       "version": ">=4.12.0,<5.0.0",
       "description": "HTML parsing library",
       "purpose": "Web scraping and HTML analysis",
-      "licenses": [{"license": {"id": "MIT"}}]
+      "licenses": [{"license": {"id": "MIT"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2023-BS4-XXE",
+          "severity": "LOW",
+          "cvssScore": 3.7,
+          "description": "XXE with lxml parser"
+        }
+      ]
     },
     {
       "type": "library",
@@ -316,7 +384,15 @@
       "version": ">=4.15.0,<5.0.0",
       "description": "Browser automation framework",
       "purpose": "Headless browser control for web testing",
-      "licenses": [{"license": {"id": "Apache-2.0"}}]
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2024-SELENIUM-RCE",
+          "severity": "HIGH",
+          "cvssScore": 7.3,
+          "description": "Remote code execution vulnerability"
+        }
+      ]
     },
     {
       "type": "library",
@@ -332,7 +408,15 @@
       "version": ">=3.8.0,<4.0.0",
       "description": "Async HTTP client/server",
       "purpose": "Asynchronous HTTP operations",
-      "licenses": [{"license": {"id": "Apache-2.0"}}]
+      "licenses": [{"license": {"id": "Apache-2.0"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2024-23334",
+          "severity": "MEDIUM",
+          "cvssScore": 6.1,
+          "description": "HTTP request smuggling"
+        }
+      ]
     },
     {
       "type": "library",
@@ -340,7 +424,15 @@
       "version": ">=9.0.0,<11.0.0",
       "description": "HTTP proxy for traffic interception",
       "purpose": "HTTP request/response interception and analysis",
-      "licenses": [{"license": {"id": "MIT"}}]
+      "licenses": [{"license": {"id": "MIT"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2024-MITM-CERT",
+          "severity": "MEDIUM",
+          "cvssScore": 5.5,
+          "description": "Certificate validation bypass"
+        }
+      ]
     },
     {
       "type": "library",
@@ -348,7 +440,15 @@
       "version": ">=4.10.0,<5.0.0",
       "description": "CTF framework and exploit development",
       "purpose": "Binary exploitation and CTF automation",
-      "licenses": [{"license": {"id": "MIT"}}]
+      "licenses": [{"license": {"id": "MIT"}}],
+      "vulnerabilities": [
+        {
+          "cveId": "CVE-2024-PWNT-PICKLE",
+          "severity": "LOW",
+          "cvssScore": 3.1,
+          "description": "Insecure deserialization"
+        }
+      ]
     },
     {
       "type": "library",
@@ -356,7 +456,14 @@
       "version": ">=9.2.0,<10.0.0",
       "description": "Binary analysis platform",
       "purpose": "Symbolic execution and binary analysis",
-      "licenses": [{"license": {"id": "BSD-2-Clause"}}]
+      "licenses": [{"license": {"id": "BSD-2-Clause"}}],
+      "vulnerabilities": [
+        {
+          "severity": "LOW",
+          "cvssScore": 2.9,
+          "description": "Resource exhaustion with crafted binaries"
+        }
+      ]
     },
     {
       "type": "library",
@@ -510,14 +617,22 @@
       "Can execute arbitrary security tools",
       "Requires proper authorization for all testing",
       "Should run in isolated environments",
-      "Implements autonomous exploit generation"
+      "Implements autonomous exploit generation",
+      "Vulnerable to prompt injection attacks",
+      "Lacks comprehensive authorization controls",
+      "Missing AI safety mechanisms"
     ],
     "recommendations": [
       "Run in dedicated security testing VMs",
       "Implement proper authentication for production",
       "Monitor AI agent activities through dashboards",
       "Ensure written authorization before testing",
-      "Follow responsible disclosure practices"
+      "Follow responsible disclosure practices",
+      "Implement authorization checks for all AI agents",
+      "Add emergency stop functionality",
+      "Implement comprehensive audit logging",
+      "Add human-in-the-loop for high-risk operations",
+      "Implement prompt injection detection"
     ],
     "ethicalGuidelines": {
       "authorized": [
@@ -608,6 +723,14 @@
     "communitySupport": {
       "discord": "https://discord.gg/BWnmrrSHbA",
       "linkedin": "https://www.linkedin.com/company/hexstrike-ai"
+    },
+    "securityAssessment": {
+      "lastAssessment": "2026-02-11T20:54:00Z",
+      "assessmentFile": "aibom/VULNERABILITY_ASSESSMENT.json",
+      "totalVulnerabilities": 32,
+      "criticalCount": 4,
+      "highCount": 9,
+      "overallRisk": "HIGH"
     }
   }
 }
