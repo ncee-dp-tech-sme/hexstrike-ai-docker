@@ -18,4 +18,5 @@ Port_Scan_Report_qradar.cool8.nl.md
 pentest_runs/
 logs/
 Network_Scan_Report_192.168.1.0_24.md
+qs_scan_result/*
 
