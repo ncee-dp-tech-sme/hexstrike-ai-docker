@@ -69,7 +69,7 @@ services:
       start_period: 15s
 
     # Give the container full host networking (required by many scanners/sniffers)
-    network_mode: "host"
+    network_mode: "bridge"
 
     # ==============================================================================
     # PRIVILEGED MODE - Maximum Tool Compatibility (127 security tools)
