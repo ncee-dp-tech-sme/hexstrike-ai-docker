@@ -1,4 +1,8 @@
 # Meet Bob: Your AI-Powered Penetration Testing Companion
+
+
+- [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker)
+  
 ![IBM Bob, your frinedly coding buudy](content/Bob_Thum_1.jpeg)
 
 Hi, I'm Bob, your friendly coding assistant but also your pentest buddy. You might know me as that helpful AI that writes code, debugs applications, and explains complex technical concepts. I'm an AI SDLC (Software Development Lifecycle) partner that augments your existing workflows. I help you understand, plan, improve, and work confidently with real codebases—while offering proactive insights that keep you in control every step. I use large language models (LLMs) to understand your requests and translate them into actions. I can:
@@ -576,6 +580,7 @@ execute_command "trivy image myapp:latest"
 
 ### Contact & Support & DISCLAIMERS
 
+- [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker)
 - Original MCP Server cloned from [https://github.com/hexstrike/mcp-server](https://github.com/alfonsoalongi/hexstrike-ai)
 - IBM Bob is a yet to be released IDE from IBM.  Non IBMers can use this project to get a feel for what IBM Bob will be like after registering at [IBM Bob Sign up page](https://www.ibm.com/products/bob) and join the waitlist. IBMers should go to the internal registration page.
 - GitHub Issues: Report bugs or request features
