@@ -1,0 +1,184 @@
+# Advanced Nmap Scan Report - 192.168.1.0/24
+
+**Scan Date:** 2026-02-20 06:08:06 UTC  
+**Target Network:** 192.168.1.0/24 (192.168.1.0 - 192.168.1.254)  
+**Total Hosts:** 256
+
+---
+
+## Scan Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Target | 192.168.1.0/24 |
+| Scan Type | SYN Stealth Scan (-sS) |
+| Timing Template | T4 (Aggressive) |
+| OS Detection | Enabled |
+| Version Detection | Enabled |
+| Execution Time | 1200.01 seconds (20 minutes) |
+| Status | Timed Out |
+
+---
+
+## Pre-Scan Discovery Results
+
+### IPv6 Multicast Discovery
+
+**Network Interface Details:**
+- **Interface:** eth0
+- **MAC Address:** f6:35:88:f9:aa:05
+- **Link-Local IPv6:** fe80::f435:88ff:fef9:aa05
+
+**Multicast Groups:**
+- `ff02::1:fff9:aa05` - NDP Solicited-node
+- `ff02::6a` - All-Snoopers
+
+### IGMP Discovery
+
+**Broadcast Discovery:**
+- **Gateway:** 10.88.0.1
+- **Interface:** eth0
+- **IGMP Version:** 2
+- **Multicast Group:** 224.0.0.106
+- **Description:** All-Snoopers (RFC4286)
+
+---
+
+## Scan Output
+
+```
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-02-20 05:48 UTC
+No profinet devices in the subnet
+
+Pre-scan script results:
+| targets-ipv6-multicast-echo: 
+|   IP: fe80::f435:88ff:fef9:aa05  MAC: f6:35:88:f9:aa:05  IFACE: eth0
+|_  Use --script-args=newtargets to add the results as targets
+
+| targets-asn: 
+|_  targets-asn.asn is a mandatory parameter
+
+| targets-ipv6-multicast-slaac: 
+|   IP: fe80::f435:88ff:fef9:aa05  MAC: f6:35:88:f9:aa:05  IFACE: eth0
+|_  Use --script-args=newtargets to add the results as targets
+
+|_eap-info: please specify an interface with -e
+
+| targets-ipv6-multicast-mld: 
+|   IP: fe80::f435:88ff:fef9:aa05  MAC: f6:35:88:f9:aa:05  IFACE: eth0
+|_  Use --script-args=newtargets to add the results as targets
+
+|_http-robtex-shared-ns: *TEMPORARILY DISABLED* due to changes in Robtex's API
+
+| ipv6-multicast-mld-list: 
+|   fe80::f435:88ff:fef9:aa05: 
+|     device: eth0
+|     mac: f6:35:88:f9:aa:05
+|     multicast_ips: 
+|       ff02::1:fff9:aa05         (NDP Solicited-node)
+|_      ff02::6a                  (All-Snoopers)
+
+|_multicast-profinet-discovery: 0
+
+| broadcast-igmp-discovery: 
+|   10.88.0.1
+|     Interface: eth0
+|     Version: 2
+|     Group: 224.0.0.106
+|     Description: All-Snoopers (rfc4286)
+|_  Use the newtargets script-arg to add the results as targets
+
+|_hostmap-robtex: *TEMPORARILY DISABLED* due to changes in Robtex's API
+
+| targets-ipv6-multicast-invalid-dst: 
+|   IP: fe80::f435:88ff:fef9:aa05  MAC: f6:35:88:f9:aa:05  IFACE: eth0
+|_  Use --script-args=newtargets to add the results as targets
+```
+
+---
+
+## Analysis
+
+### Scan Status
+⚠️ **Timeout Reached** - The scan reached the 20-minute timeout limit while scanning the 192.168.1.0/24 network.
+
+### Possible Causes
+
+1. **Network Accessibility Issues**
+   - Target network may not be directly accessible from the scanning host
+   - Network routing may not be configured properly
+
+2. **Firewall Protection**
+   - Packets may be dropped by firewall rules
+   - Network may be protected by IDS/IPS systems
+
+3. **Network Isolation**
+   - Scanning host may be in an isolated container/network
+   - Virtual network configuration may prevent access to target range
+
+4. **No Live Hosts**
+   - The 192.168.1.0/24 network may not have any active hosts
+   - All hosts may be powered off or unreachable
+
+---
+
+## Recommendations
+
+### Immediate Actions
+
+1. **Verify Network Connectivity**
+   ```bash
+   ping 192.168.1.1
+   traceroute 192.168.1.1
+   ```
+
+2. **Check Network Configuration**
+   - Verify the scanning host can reach the 192.168.1.0/24 network
+   - Check routing tables and network interfaces
+   - Ensure no firewall rules are blocking outbound traffic
+
+3. **Use Faster Discovery Tools**
+   - Try `rustscan_fast_scan` for rapid host discovery
+   - Use `masscan_high_speed` for large network ranges
+   - Perform ARP scan if on the same network: `arp_scan_discovery`
+
+4. **Targeted Scanning**
+   - Once live hosts are identified, perform targeted scans
+   - Focus on specific IP addresses rather than entire subnet
+   - Use appropriate timing templates based on network conditions
+
+### Alternative Scanning Approaches
+
+```bash
+# Fast host discovery
+rustscan_fast_scan --target 192.168.1.0/24
+
+# ARP scan (if on same network)
+arp_scan_discovery --target 192.168.1.0/24
+
+# Masscan for quick port discovery
+masscan_high_speed --target 192.168.1.0/24 --ports 1-1000 --rate 1000
+```
+
+---
+
+## Technical Details
+
+**Nmap Version:** 7.95  
+**Scan Started:** 2026-02-20 05:48:00 UTC  
+**Scan Completed:** 2026-02-20 06:08:06 UTC  
+**Return Code:** -1 (Timeout)  
+**Success Status:** True (Partial)
+
+---
+
+## Notes
+
+- No PROFINET devices detected in the subnet
+- Some Nmap scripts are temporarily disabled (Robtex API changes)
+- IPv6 multicast discovery was successful on local interface
+- IGMP discovery found gateway at 10.88.0.1
+
+---
+
+*Report generated by HexStrike AI v6.0 - Advanced Cybersecurity Automation Platform*
