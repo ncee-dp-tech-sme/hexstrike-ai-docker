@@ -26,27 +26,27 @@ RUN set -euo pipefail; \
       libjq-dev libonig-dev bison flex \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a dedicated virtual environment for CloudMapper
-RUN python -m venv "$CM_VENV" \
- && "$CM_VENV/bin/pip" install --no-cache-dir -U pip setuptools wheel
+# # Create a dedicated virtual environment for CloudMapper
+# RUN python -m venv "$CM_VENV" \
+#  && "$CM_VENV/bin/pip" install --no-cache-dir -U pip setuptools wheel
 
-# Fetch CloudMapper directly from upstream to avoid context COPY issues
-RUN git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper \
- && rm -rf /opt/hexstrike/tools/cloudmapper/.git
+# # Fetch CloudMapper directly from upstream to avoid context COPY issues
+# RUN git clone --depth 1 https://github.com/duo-labs/cloudmapper.git /opt/hexstrike/tools/cloudmapper \
+#  && rm -rf /opt/hexstrike/tools/cloudmapper/.git
 
-# Normalize requirement pins and install into the dedicated venv
-RUN REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
-  # Align matplotlib/numpy to versions compatible with Python 3.10
-  sed -i \
-    -e 's/^matplotlib==3\.4\.3$/matplotlib==3\.7\.5/' \
-    -e 's/^numpy==1\.22\.0$/numpy>=1\.23/' \
-    "$REQ"; \
-  # Drop typed-ast (not supported on Python ≥ 3.10)
-  sed -i '/^typed-ast==/d' "$REQ"; \
-  # Optionally bump pyjq to a newer compatible version if pinned
-  sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ"; \
-  # Install all dependencies in the CloudMapper venv
-  "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
+# # Normalize requirement pins and install into the dedicated venv
+# RUN REQ=/opt/hexstrike/tools/cloudmapper/requirements.txt; \
+#   # Align matplotlib/numpy to versions compatible with Python 3.10
+#   sed -i \
+#     -e 's/^matplotlib==3\.4\.3$/matplotlib==3\.7\.5/' \
+#     -e 's/^numpy==1\.22\.0$/numpy>=1\.23/' \
+#     "$REQ"; \
+#   # Drop typed-ast (not supported on Python ≥ 3.10)
+#   sed -i '/^typed-ast==/d' "$REQ"; \
+#   # Optionally bump pyjq to a newer compatible version if pinned
+#   sed -i 's/^pyjq==2\.4\.0$/pyjq==2\.6\.0/' "$REQ"; \
+#   # Install all dependencies in the CloudMapper venv
+#   "$CM_VENV/bin/pip" install --no-cache-dir --prefer-binary -r "$REQ"
 
 # ------------------------------------------------------------------------------
 # Stage C: Node.js 18 builder for insomnia-inso (isolated runtime)
@@ -645,8 +645,8 @@ RUN apt-get install -y --no-install-recommends \
 # ==============================================================================
 # Phase 14: Security Tool Repositories & Wrappers
 # Bring CloudMapper code and its dedicated venv from the builder stage
-COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
-COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
+# COPY --from=cloudmapper-builder /opt/venvs/cloudmapper /opt/venvs/cloudmapper
+# COPY --from=cloudmapper-builder /opt/hexstrike/tools/cloudmapper /opt/hexstrike/tools/cloudmapper
 
 # Install system deps for Pacu (cffi may require libffi); then install Pacu via pipx on Python 3.12
 RUN apt-get install -y --no-install-recommends libffi-dev \
@@ -738,8 +738,8 @@ RUN set -euo pipefail; \
 # ==============================================================================
 RUN set -eu; \
     # CloudMapper wrapper: ensure execution via its dedicated venv
-    printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' \
-      > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
+    # printf '#!/bin/bash\n/opt/venvs/cloudmapper/bin/python /opt/hexstrike/tools/cloudmapper/cloudmapper.py "$@"\n' \
+    #   > /usr/local/bin/cloudmapper && chmod +x /usr/local/bin/cloudmapper && \
     # Insomnia CLI wrapper: run with isolated Node 18 runtime
     printf '#!/bin/bash\nPATH=/opt/insomnia-node18/bin:$PATH NODE_PATH=/opt/insomnia/lib/node_modules exec /opt/insomnia/bin/inso "$@"\n' \
       > /usr/local/bin/insomnia && chmod +x /usr/local/bin/insomnia && \
