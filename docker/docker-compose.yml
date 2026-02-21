@@ -7,6 +7,19 @@
 
 version: "3.8"
 
+# create network
+networks:
+  bob_pentest_network:
+    driver: macvlan
+    ipam:
+      config:
+        - subnet: 10.88.0.0/24
+          gateway: 10.88.0.1
+    # x-podman:
+    #   default_net_behavior_compat: true
+    #   disable-dns: false
+    #   internet_access: true
+        
 services:
   # ----------------------------------------------------------------------------
   # HexStrike MCP Server
@@ -22,7 +35,10 @@ services:
 
     # Image name and tag
     image: hexstrike-ai:v6.0
-
+    networks:
+      bob_pentest_network:
+          ipv4_address: 10.88.0.2
+  # Restart policy  
     # Environment variables
     environment:
       - PYTHONUNBUFFERED=1
@@ -30,9 +46,9 @@ services:
       # - DEBUG_MODE=true
       # - MCP_PORT=8888
       # Clair API
-      - CLAIR_ADDR=http://127.0.0.1:10080
+      - CLAIR_ADDR=http://10.88.0.3:10080
       # Metasploit DB URL (empty = disabled)
-      - MSF_DB_URL=postgresql://msf:msf@127.0.0.1:5432/msf
+      - MSF_DB_URL=postgresql://msf:msf@hexstrike-postgres:5432/msf
 
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
@@ -59,7 +75,9 @@ services:
     ports:
       - 8888:8888
     expose:
-      - "8888"
+      - 8888
+    extra_hosts:
+      - "hexstrike-postgres:10.88.0.4"
     # Health check configuration
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
@@ -69,7 +87,7 @@ services:
       start_period: 15s
 
     # Give the container full host networking (required by many scanners/sniffers)
-    network_mode: "bridge"
+    #network_mode: host
 
     # ==============================================================================
     # PRIVILEGED MODE - Maximum Tool Compatibility (127 security tools)
@@ -133,10 +151,18 @@ services:
     pull_policy: always
     container_name: hexstrike-clair
     restart: unless-stopped
-    network_mode: "host"
+    networks:
+      bob_pentest_network:
+        ipv4_address: 10.88.0.3
+    extra_hosts:
+      - "hexstrike-postgres:10.88.0.4"
+    #network_mode: host
+    ports:
+      - 6060:6060
+      - 6061:6061
     expose:
-      - "6060"
-      - "6061"
+      - 6060
+      - 6061
     volumes:
       - ./config/clair-config.yaml:/etc/clair/config.yaml:ro,Z
     command: ["-conf=/etc/clair/config.yaml"]
@@ -149,7 +175,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    
+    privileged: true
 
   # ----------------------------------------------------------------------------
   # PostgreSQL 18 — local DB for Clair (and optional Metasploit)
@@ -163,18 +189,25 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     # Bind Postgres only to localhost on host network
-    network_mode: "host"
-    command: ["-c", "listen_addresses=127.0.0.1"]
+    #network_mode: host
+    networks:
+      bob_pentest_network:
+        ipv4_address: 10.88.0.4
+    command: ["-c", "listen_addresses=10.88.0.4"]
+    ports: 
+     - 5432:5432
     expose:
-      - "5432"
+      - 5432
     volumes:
       # DB init scripts live here (create users/databases, etc.)
       - ./config/db-init:/docker-entrypoint-initdb.d:ro,Z
       # Mount the parent; the image manages the child path internally
       - ../data/postgres:/var/lib/postgresql:Z,U
+      - ../data/postgres/dbdata:/var/lib/postgresql/data:Z,U
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1 -p 5432 -d clair"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 10.88.0.4 -p 5432 -d clair"]
       interval: 10s
       timeout: 5s
       retries: 10
+    privileged: true
    
