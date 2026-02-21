@@ -49,6 +49,7 @@ services:
       - CLAIR_ADDR=http://10.88.0.3:10080
       # Metasploit DB URL (empty = disabled)
       - MSF_DB_URL=postgresql://msf:msf@hexstrike-postgres:5432/msf
+      
 
     volumes:
       - ../logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw,Z
@@ -185,7 +186,7 @@ services:
     pull_policy: always
     container_name: hexstrike-postgres
     restart: unless-stopped
-    user: "999:999"
+    # user: "999:999"
     environment:
       POSTGRES_PASSWORD: postgres
     # Bind Postgres only to localhost on host network
@@ -203,7 +204,6 @@ services:
       - ./config/db-init:/docker-entrypoint-initdb.d:ro,Z
       # Mount the parent; the image manages the child path internally
       - ../data/postgres:/var/lib/postgresql:Z,U
-      - ../data/postgres/dbdata:/var/lib/postgresql/data:Z,U
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -h 10.88.0.4 -p 5432 -d clair"]
       interval: 10s

@@ -14,11 +14,10 @@ mkdir -p \
   "../data/amass" \
   "../data/msf" \
   "../data/postgres" \
-  "../data/postgres\dbdata" \
   "../data/workspace" \
 
 [ -f "../logs/hexstrike.log" ] || touch "../logs/hexstrike.log"
 
 sudo docker-compose \
   -f "./docker-compose.yml" \
-  up -d --force-recreate 
+  up --force-recreate 

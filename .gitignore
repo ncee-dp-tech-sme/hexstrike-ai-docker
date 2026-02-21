@@ -10,6 +10,7 @@ docker/config/
 docker/files/
 .venv/
 data/
+data_old/
 .DS_Store
 logs/build.log
 create_mongodb_test_data.sh
