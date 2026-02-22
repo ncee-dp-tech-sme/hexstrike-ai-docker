@@ -266,16 +266,24 @@ RUN apt-get install -y --no-install-recommends \
         traceroute
 
 # - rustscan: modern and fast port scanner
-RUN tmp="$(mktemp -d)"; cd "$tmp"; \
-  url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
+RUN tmp=$(mktemp -d); cd "$tmp"; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
          | jq -r '.assets[]?.browser_download_url | select(endswith("rustscan.deb.zip"))' | head -n1)"; \
-  [ -n "$url" ] || { echo "rustscan.deb.zip asset not found in latest release"; exit 1; }; \
-  curl -fsSL -o rustscan.deb.zip "$url"; \
-  unzip -q rustscan.deb.zip; \
-  deb="$(printf '%s\n' rustscan*.deb | head -n1)"; \
-  dpkg -i "$deb" || apt-get -f install -y --no-install-recommends; \
-  cd /; rm -rf "$tmp"
-
+         curl -fsSL -o rustscan.deb.zip "$url"; \
+         unzip -q rustscan.deb.zip; \
+         deb="$(printf '%s\n' rustscan*.deb | head -n1)"; \
+         dpkg -i "$deb" || apt-get -f install -y --no-install-recommends;; \
+      arm64) url="$(curl -fsSL https://api.github.com/repos/bee-san/RustScan/releases/latest \
+         | jq -r '.assets[]?.browser_download_url | select(endswith("aarch64-linux-rustscan.zip"))' | head -n1)"; \
+         curl -fsSL -o aarch64-linux-rustscan.zip "$url"; \
+         unzip -q aarch64-linux-rustscan.zip; \
+         cp -a rustscan /usr/local/bin; \
+         chmod 0755 /usr/local/bin/rustscan;; \
+    esac; \
+    cd /; rm -rf "$tmp" 
+  
 # ==============================================================================
 # Phase 6: Web Application Security Tools
 # ==============================================================================

@@ -28,3 +28,4 @@ osint/tb/
 qs_scan_result/
 qs_exploit_result/
 logs/build.log
+.bob/mcp.jso
