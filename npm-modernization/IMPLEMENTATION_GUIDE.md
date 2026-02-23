@@ -279,8 +279,8 @@ sleep 10
 # Test health endpoint
 curl http://localhost:8888/health
 
-# Test tool availability
-curl http://localhost:8888/tools
+# Test tool availability also via the health endpoint
+curl http://localhost:8888/health
 
 # Check logs for errors
 docker logs hexstrike-test
@@ -319,7 +319,7 @@ docker exec hexstrike-integration graphql-scanner --version
 # Test server endpoints
 echo "Testing server endpoints..."
 curl -f http://localhost:8888/health || echo "Health check failed"
-curl -f http://localhost:8888/tools || echo "Tools endpoint failed"
+curl -f http://localhost:8888/api/telemetry || echo "Telemetry endpoint failed"
 
 # Cleanup
 docker stop hexstrike-integration

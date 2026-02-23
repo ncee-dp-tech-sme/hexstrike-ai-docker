@@ -218,8 +218,9 @@ docker run --rm hexstrike-ai:test newman --version
 ```bash
 # Start server and test endpoints
 docker run -d --name test -p 8888:8888 hexstrike-ai:test
+# The health endpoint also returns tool availability
 curl http://localhost:8888/health
-curl http://localhost:8888/tools
+
 ```
 
 ---
