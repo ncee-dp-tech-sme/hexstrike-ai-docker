@@ -1,7 +1,10 @@
 # Meet Bob: Your AI-Powered Penetration Testing Companion
 
+[![Build and Push Multi-Arch Container](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml/badge.svg?event=repository_dispatch)](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml)
 
 - [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker)
+
+# update 25 february 2026: Pre-build container image for HexStrike AI MCP server availabe on GHCR.
   
 ![IBM Bob, your frinedly coding buudy](content/Bob_Thum_1.jpeg)
 
@@ -69,6 +72,43 @@ Here's something unique about me: I can communicate with both security professio
 - **To developers**: The exact vulnerable code, why it's dangerous, and how to fix it with secure code examples
 - **To management**: The risk in business terms and prioritized remediation timelines
 
+## Quick Start (for Podman) 
+(Gentle reminder: IBM does not support running container using Docker so use Podman)
+
+Copy the commands below and run them in your terminal or create a Bash script to automate the process.
+
+```bash
+#!/bin/bash
+set -Eeuo pipefail
+
+# create host-side folders used by docker-compose bind mounts
+mkdir -p \
+  "../logs" \
+  "../data/nuclei-templates" \
+  "../data/trivy" \  
+
+[ -f "../logs/hexstrike.log" ] || touch "../logs/hexstrike.log"
+chmod 0755 ../logs/hexstrike.log
+
+podman run -d -p 8888:8888 \
+  --name hexstrike-mcp-server \
+  --network bridge \
+  --platform linux/arm64 \
+  --privileged \
+  -v $(pwd)/logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw \
+  -v $(pwd)/data/trivy:/root/.cache/trivy:rw \
+  -v $(pwd)/data/nuclei-templates:/root/nuclei-templates:rw \
+  ghcr.io/ncee-dp-tech-sme/hexstrike-ai-docker:05d8d5487d580d1a8d6c5a007eea8bd84de3b6d1
+```
+To test the hexstrike-ai-docker image, run the following commands:
+```bash
+curl 'http://localhost:8888/health' \
+  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8'
+  ```
+The above command will return output compatible with the following:
+```json
+"all_essential_tools_available":true,"cache_stats":{"evictions":0,"hit_rate":"49.6%","hits":123,"max_size":1000,"misses":125,"size":123},"category_stats":{"additional":{"available":14,"total":14},"api":{"available":8,"total":8},"binary":{"available":13,"total":13},"cloud":{"available":10,"total":10},"essential":{"available":8,"total":8},"exploitation":{"available":3,"total":3},"forensics":{"available":15,"total":16},"network":{"available":10,"total":10},"osint":{"available":13,"total":13},"password":{"available":5,"total":5},"vuln_scanning":{"available":4,"total":4},"web_security":{"available":19,"total":19},"wireless":{"available":4,"total":4}},"message":"HexStrike AI Tools API Server is operational","status":"healthy","telemetry":{"enabled":true,"interval":300,"last_run":1642080000,"next_run":1642080000,"run_count":0}}
+```
 ## My Arsenal: Tools and Techniques
 
 ### Pattern Recognition at Scale
