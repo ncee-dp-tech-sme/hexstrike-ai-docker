@@ -1,0 +1,10 @@
+# these binairies need to be installed as arm64, currently only available in the x86 version due to no architecture check in the Dockerfile
+katana >> can be installed using golang 
+jaeles >> can be installed using golang 
+x8 >> can be installed using rust + cargo
+gau >> can be installed using golang 
+assetfinder >> can be installed using golang 
+waybackurls >> can be installed using golang 
+aws-cli >> can be installed using python + pip
+terrascan >> to be removed, no longer maintained
+cloudmapper >> can be installed using python + pip : https://github.com/duo-labs/cloudmapper
