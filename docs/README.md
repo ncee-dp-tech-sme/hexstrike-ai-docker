@@ -98,7 +98,7 @@ podman run -d -p 8888:8888 \
   -v $(pwd)/logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw \
   -v $(pwd)/data/trivy:/root/.cache/trivy:rw \
   -v $(pwd)/data/nuclei-templates:/root/nuclei-templates:rw \
-  ghcr.io/ncee-dp-tech-sme/hexstrike-ai-docker:05d8d5487d580d1a8d6c5a007eea8bd84de3b6d1
+  ghcr.io/ncee-dp-tech-sme/hexstrike-ai-docker:latest
 ```
 To test the hexstrike-ai-docker image, run the following commands:
 ```bash
