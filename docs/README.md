@@ -1,5 +1,6 @@
 # Meet Bob: Your AI-Powered Penetration Testing Companion
 
+[![Build and Push Multi-Arch Container](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml/badge.svg?event=repository_dispatch)](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml)
 
 - [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker)
   
