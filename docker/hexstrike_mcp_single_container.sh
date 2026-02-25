@@ -1,10 +1,6 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-# SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )"
-# echo $SCRIPT_DIR
-# cd $SCRIPT_DIR
-
 # create host-side folders used by docker-compose bind mounts
 mkdir -p \
   "../logs" \
