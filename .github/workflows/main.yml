@@ -3,6 +3,8 @@ name: Build and Push Multi-Arch Container
 on:
   push:
     branches: [ docker ]
+    paths:
+      - 'docker/**'
   workflow_dispatch:
 
 jobs:
