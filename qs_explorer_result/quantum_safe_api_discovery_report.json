@@ -25,12 +25,12 @@
                 "Crypto_calls": 2,
                 "Crypto_evidences": 0,
                 "Crypto_vulnerabilities": 0,
-                "External_functions": 4451,
+                "External_functions": 4461,
                 "Files": {
                     "hexstrike_server.py": 2
                 },
-                "Files_scanned": 3,
-                "Function_calls": 4451,
+                "Files_scanned": 5,
+                "Function_calls": 4461,
                 "Instances": {
                     "hashlib.hash.hexdigest": 1,
                     "hashlib.md5": 1
@@ -38,8 +38,8 @@
                 "Libraries": {
                     "hashlib": 2
                 },
-                "Lines_scanned": 7402,
-                "Methods_scanned": 610,
+                "Lines_scanned": 7460,
+                "Methods_scanned": 612,
                 "Non_quantum_safe_algorithms": 0,
                 "Quantum_safe_algorithms": 0
             }

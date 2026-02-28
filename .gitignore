@@ -26,9 +26,12 @@ osint/fh/
 osint/friethoff.com/
 osint/tb/
 qs_scan_result/*
-qs_exploit_result/
+qs_explorer_result/*
 logs/build.log
 .bob/mcp.jso
 npm_deprication.txt
 Penetration_Test_Report_cp4s.cool8.nl.md
 .bob/mcp.json
+Comprehensive_Security_Assessment_qradar.cool8.nl.md
+PostgreSQL_Security_Assessment_qradar.cool8.nl.md
+Enable-MultipleRDPSessions.ps1
