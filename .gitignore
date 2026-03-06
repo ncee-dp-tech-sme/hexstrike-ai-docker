@@ -35,3 +35,7 @@ Penetration_Test_Report_cp4s.cool8.nl.md
 Comprehensive_Security_Assessment_qradar.cool8.nl.md
 PostgreSQL_Security_Assessment_qradar.cool8.nl.md
 Enable-MultipleRDPSessions.ps1
+qs_explorer_result/quantum_safe_api_discovery_cbom.json
+qs_explorer_result/quantum_safe_api_discovery_findings.json
+qs_scan_result/scan-results/findings.json
+qs_scan_result/scan-results/quantum_safe_cbom.json

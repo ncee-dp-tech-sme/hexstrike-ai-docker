@@ -1,12 +1,12 @@
 {
   "scanId": "cca9aea8-8588-499c-a91a-83731091188f",
   "name": "crypto artifacts",
-  "applicationId": " ",
-  "applicationVersion": " ",
+  "applicationId": "",
+  "applicationVersion": "6.0.0",
   "scanTime": "2026-02-28T15:26:54.480858Z",
   "num_artifacts": 2,
-  "repositoryId": " ",
-  "repositoryUrl": " ",
+  "repositoryId": "256988054",
+  "repositoryUrl": "https://api.github.com/repos/ncee-dp-tech-sme/hexstrike-ai-docker",
   "children": [
     {
       "file_type": "py",
