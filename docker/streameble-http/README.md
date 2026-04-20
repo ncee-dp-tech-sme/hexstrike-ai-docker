@@ -63,18 +63,219 @@ docker/streameble-http/
 
 ## Quick Start
 
-### 1. Start the Server
+### 1. Start the Streaming Server
 
+#### Option A: Native Python
 ```bash
-# Native Python (requires dependencies)
-python3 hexstrike_server.py --port 8888
+# Install dependencies
+pip install flask requests psutil
 
-# Docker (recommended)
-docker build -t hexstrike-streaming .
-docker run -p 8888:8888 hexstrike-streaming
+# Start server
+cd docker/streameble-http
+python3 hexstrike_server.py --port 8888
 ```
 
-### 2. Test Streaming
+#### Option B: Docker (Recommended)
+```bash
+# Build image
+cd docker/streameble-http
+docker build -t hexstrike-streaming .
+
+# Run container
+docker run -d \
+  --name hexstrike-streaming \
+  -p 8888:8888 \
+  --privileged \
+  hexstrike-streaming
+```
+
+### 2. Configure MCP Client for Streaming Server
+
+The HexStrike MCP client (`hexstrike_mcp.py`) can connect to the streaming server. Update your configuration:
+
+#### For Claude Desktop (MCP Configuration)
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "hexstrike-streaming": {
+      "command": "python3",
+      "args": [
+        "/path/to/hexstrike_mcp.py",
+        "--server",
+        "http://localhost:8888",
+        "--timeout",
+        "1800"
+      ],
+      "env": {
+        "HEXSTRIKE_SERVER": "http://localhost:8888"
+      }
+    }
+  }
+}
+```
+
+#### For Cursor IDE (MCP Configuration)
+
+Edit `.cursor/mcp_config.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "hexstrike-streaming": {
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/hexstrike_mcp.py",
+        "--server",
+        "http://localhost:8888",
+        "--timeout",
+        "1800"
+      ]
+    }
+  }
+}
+```
+
+#### Manual MCP Client Start
+
+```bash
+# Start MCP client pointing to streaming server
+python3 hexstrike_mcp.py \
+  --server http://localhost:8888 \
+  --timeout 1800
+```
+
+**Important Notes:**
+- The MCP client connects to the server via HTTP REST API
+- Streaming endpoints are available but MCP uses standard REST by default
+- To use streaming in MCP tools, you'll need to add streaming-specific tools (see below)
+
+### 3. Using Streaming with MCP
+
+The MCP client can leverage streaming endpoints for long-running operations:
+
+#### Add Streaming Tools to MCP Client
+
+You can extend `hexstrike_mcp.py` to add streaming-aware tools:
+
+```python
+@mcp.tool()
+def stream_nmap_scan(target: str, scan_type: str = "version") -> str:
+    """Execute nmap scan with real-time streaming output"""
+    
+    # Create streaming task
+    response = client.safe_post("api/stream/create", {
+        "command": f"nmap -sV {target}",
+        "auto_start": True
+    })
+    
+    if not response.get("success"):
+        return f"Error: {response.get('error')}"
+    
+    task_id = response.get("task_id")
+    stream_url = response.get("stream_url")
+    
+    return f"""
+Streaming scan started!
+Task ID: {task_id}
+Stream URL: {stream_url}
+
+To monitor progress:
+1. GET /api/stream/{task_id}/info - Check status
+2. GET /api/stream/{task_id} - Connect to SSE stream
+3. POST /api/stream/{task_id}/terminate - Stop scan
+"""
+```
+
+#### Environment Variables
+
+Set these for easier configuration:
+
+```bash
+export HEXSTRIKE_SERVER="http://localhost:8888"
+export HEXSTRIKE_TIMEOUT="1800"
+export HEXSTRIKE_STREAMING="true"
+```
+
+### 4. Docker Compose Deployment (Recommended)
+
+For production deployment, use Docker Compose to manage both server and dependencies:
+
+#### Create `docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  hexstrike-streaming:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hexstrike-streaming
+    ports:
+      - "8888:8888"
+    environment:
+      - HEXSTRIKE_PORT=8888
+      - HEXSTRIKE_HOST=0.0.0.0
+      - COMMAND_TIMEOUT=3600
+      - DEBUG_MODE=false
+    volumes:
+      - ./data:/data
+      - ./logs:/opt/hexstrike/logs
+    privileged: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+#### Start with Docker Compose
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f hexstrike-streaming
+
+# Stop services
+docker-compose down
+
+# Restart services
+docker-compose restart
+```
+
+#### MCP Client with Docker Compose
+
+Update your MCP configuration to use the Docker service:
+
+```json
+{
+  "mcpServers": {
+    "hexstrike-streaming": {
+      "command": "python3",
+      "args": [
+        "/path/to/hexstrike_mcp.py",
+        "--server",
+        "http://localhost:8888",
+        "--timeout",
+        "1800"
+      ],
+      "env": {
+        "HEXSTRIKE_SERVER": "http://localhost:8888",
+        "HEXSTRIKE_STREAMING": "true"
+      }
+    }
+  }
+}
+```
+
+### 5. Test Streaming
 
 ```bash
 # Run test suite
