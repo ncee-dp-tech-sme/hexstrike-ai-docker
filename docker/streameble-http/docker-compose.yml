@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  hexstrike-streaming:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hexstrike-streaming
+    ports:
+      - "8888:8888"
+    environment:
+      # Server Configuration
+      - HEXSTRIKE_PORT=8888
+      - HEXSTRIKE_HOST=0.0.0.0
+      - COMMAND_TIMEOUT=3600
+      - DEBUG_MODE=false
+      
+      # Cache Configuration
+      - CACHE_SIZE=1000
+      - CACHE_TTL=3600
+      
+      # Streaming Configuration
+      - STREAMING_QUEUE_SIZE=1000
+      - STREAMING_KEEPALIVE=30
+      
+      # Process Pool Configuration
+      - MIN_WORKERS=4
+      - MAX_WORKERS=32
+      
+    volumes:
+      # Data persistence
+      - ./data:/data
+      - ./logs:/opt/hexstrike/logs
+      
+      # Optional: Mount custom wordlists
+      # - ./wordlists:/usr/share/wordlists/custom
+      
+      # Optional: Mount scan results
+      # - ./results:/workspace
+      
+    # Required for security tools that need raw sockets, network admin, etc.
+    privileged: true
+    
+    # Alternative to privileged mode (more secure but may not work for all tools)
+    # cap_add:
+    #   - NET_ADMIN
+    #   - NET_RAW
+    #   - SYS_PTRACE
+    #   - SYS_ADMIN
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    networks:
+      - hexstrike-network
+    
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+
+networks:
+  hexstrike-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# Optional: Add a reverse proxy for HTTPS
+# services:
+#   nginx:
+#     image: nginx:alpine
+#     container_name: hexstrike-proxy
+#     ports:
+#       - "443:443"
+#       - "80:80"
+#     volumes:
+#       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#       - ./ssl:/etc/nginx/ssl:ro
+#     depends_on:
+#       - hexstrike-streaming
+#     networks:
+#       - hexstrike-network
+
+# Made with Bob
