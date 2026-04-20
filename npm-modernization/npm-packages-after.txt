@@ -1,0 +1,13 @@
+[0m/usr/local/lib[0m
+[0m├── @faker-js/faker@10.3.0[0m
+[0m├── @graphql-inspector/cli@6.0.7[0m
+[0m├── glob@13.0.6[0m
+[0m├── graphql-playground-html@1.6.30[0m
+[0m├── graphql-voyager@2.1.0[0m
+[0m├── graphql@16.12.0[0m
+[0m├── jwt-cracker@4.1.1[0m
+[0m├── newman@6.2.2[0m
+[0m├── pwned@13.1.2[0m
+[0m├── social-analyzer@1.0.0[0m
+[0m└── uuid@13.0.0[0m
+[0m[0m

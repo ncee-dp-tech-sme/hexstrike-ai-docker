@@ -1,18 +1,18 @@
 {
-  "scanId": "1991e426-0a3e-4255-a08a-fdcfc42467c5",
+  "scanId": "cca9aea8-8588-499c-a91a-83731091188f",
   "name": "crypto artifacts",
-  "applicationId": " ",
-  "applicationVersion": " ",
-  "scanTime": "2026-02-11T21:32:51.676599Z",
+  "applicationId": "",
+  "applicationVersion": "6.0.0",
+  "scanTime": "2026-02-28T15:26:54.480858Z",
   "num_artifacts": 2,
-  "repositoryId": " ",
-  "repositoryUrl": " ",
+  "repositoryId": "256988054",
+  "repositoryUrl": "https://api.github.com/repos/ncee-dp-tech-sme/hexstrike-ai-docker",
   "children": [
     {
       "file_type": "py",
       "children": [
         {
-          "file_id": "9e60b5ea-09b3-4961-a746-407ad5cdd8a8",
+          "file_id": "7302e732-175f-4019-ace2-b5492e30ad69",
           "name": "hexstrike_server.py",
           "full_name": "hexstrike_server.py",
           "num_artifacts": 2,

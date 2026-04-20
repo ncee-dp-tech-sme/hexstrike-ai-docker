@@ -1,10 +1,10 @@
 {
   "bomFormat" : "CycloneDX",
   "specVersion" : "1.6",
-  "serialNumber" : "20b711e1-dfbc-4cc0-801b-eb5f3eb41479",
+  "serialNumber" : "c5ba5bb3-5510-4d63-b847-84470dc9dd62",
   "version" : 1,
   "metadata" : {
-    "timestamp" : "2026-02-11T21:32:52Z",
+    "timestamp" : "2026-02-28T15:26:55Z",
     "tools" : {
       "services" : [
         {
@@ -12,26 +12,30 @@
             "name" : "IBM Corporation."
           },
           "name" : "IBM Quantum Safe Explorer",
-          "version" : "2.2.5.0"
+          "version" : "2.2.5.1"
         }
       ]
     },
     "component" : {
       "type" : "application",
-      "name" : "",
-      "version" : ""
+      "name" : "Hexstrike-AI",
+      "version" : "6.0.0"
     },
     "properties" : [
       {
         "name" : "language",
-        "value" : "python, Go, c, Go"
+        "value" : "python"
+      },
+      {
+        "name" : "gitUrl",
+        "value" : "https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker"
       }
     ]
   },
   "components" : [
     {
       "type" : "cryptographic-asset",
-      "bom-ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85",
+      "bom-ref" : "71eb8ee2-82f0-4847-a0b8-418b58a6b6d5",
       "name" : "hashlib.md5",
       "evidence" : {
         "occurrences" : [
@@ -52,7 +56,7 @@
     },
     {
       "type" : "cryptographic-asset",
-      "bom-ref" : "4202726d-8fa6-400f-8a84-7755cbfc6a38",
+      "bom-ref" : "1cbb024b-dfa0-479e-b65e-7db9c034b378",
       "name" : "hashlib.hash.hexdigest",
       "evidence" : {
         "occurrences" : [
@@ -92,7 +96,7 @@
       ],
       "affects" : [
         {
-          "ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85"
+          "ref" : "71eb8ee2-82f0-4847-a0b8-418b58a6b6d5"
         }
       ]
     },
@@ -112,7 +116,7 @@
       ],
       "affects" : [
         {
-          "ref" : "0faec4e0-c49c-4a8c-9bc4-09f00223be85"
+          "ref" : "71eb8ee2-82f0-4847-a0b8-418b58a6b6d5"
         }
       ]
     }

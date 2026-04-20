@@ -28,6 +28,22 @@
           "methodCalls": 5,
           "variables": 14
         },
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data_old/data/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data_old/data/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py",
+          "totalLinesOfCode": 79,
+          "activeLinesOfCode": 29,
+          "methodDefined": 1,
+          "methodCalls": 5,
+          "variables": 14
+        },
+        "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data_old/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py": {
+          "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/data_old/zap/scripts/templates/websocketpassive/Passive WebSocket Scan Template.py",
+          "totalLinesOfCode": 79,
+          "activeLinesOfCode": 29,
+          "methodDefined": 1,
+          "methodCalls": 5,
+          "variables": 14
+        },
         "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_mcp.py": {
           "path": "/Users/erwin/Documents/Projecten/Github_repos/personal_dev/ncee-dp-tech-sme/hexstrike-ai-docker/hexstrike_mcp.py",
           "totalLinesOfCode": 5456,
