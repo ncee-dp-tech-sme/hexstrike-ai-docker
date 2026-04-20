@@ -335,6 +335,7 @@ Configure VS Code settings in `.vscode/settings.json`:
   "inputs": []
 }
 ```
+
 ### VS Code ChatGPT Codex Integration
 Configure Codex settings in `~/.codex/config.toml`
 ```yaml
@@ -345,6 +346,183 @@ args = ["-X","utf8",
   "--server","http://127.0.0.1:8888"
 ]
 ```
+
+### Bob IDE Integration
+
+Bob IDE supports MCP servers through its configuration system. Follow these steps to configure HexStrike AI:
+
+#### Step 1: Start the HexStrike Server
+
+First, ensure the HexStrike server is running:
+
+```bash
+# Native Python (requires venv activation first)
+python3 hexstrike_server.py --port 8888
+
+# OR Docker (recommended - includes all 150+ tools)
+./docker/start-docker-mcp-server.sh
+```
+
+Verify the server is running:
+```bash
+curl http://localhost:8888/health
+```
+
+#### Step 2: Configure Bob IDE
+
+1. **Open Bob IDE Settings**
+   - Navigate to Settings → MCP Servers (or equivalent configuration section)
+
+2. **Add HexStrike MCP Server**
+   
+   Create a new MCP server configuration with the following settings:
+
+   ```json
+   {
+     "name": "hexstrike-ai",
+     "command": "python3",
+     "args": [
+       "/path/to/hexstrike-ai/hexstrike_mcp.py",
+       "--server",
+       "http://localhost:8888",
+       "--timeout",
+       "1800"
+     ],
+     "description": "HexStrike AI v6.0 - Advanced Cybersecurity Automation Platform with 150+ security tools",
+     "env": {
+       "PYTHONUNBUFFERED": "1"
+     }
+   }
+   ```
+
+   **Important**: Replace `/path/to/hexstrike-ai/` with the actual absolute path to your HexStrike installation.
+
+3. **Docker-based Configuration (Alternative)**
+
+   If using Docker, configure Bob IDE to connect to the containerized server:
+
+   ```json
+   {
+     "name": "hexstrike-ai-docker",
+     "command": "python3",
+     "args": [
+       "/path/to/hexstrike-ai/hexstrike_mcp.py",
+       "--server",
+       "http://localhost:8888",
+       "--timeout",
+       "1800"
+     ],
+     "description": "HexStrike AI v6.0 (Docker) - Full security testing environment",
+     "env": {
+       "PYTHONUNBUFFERED": "1"
+     }
+   }
+   ```
+
+#### Step 3: Verify Connection
+
+1. **Restart Bob IDE** to load the new MCP server configuration
+
+2. **Test the connection** by asking Bob to use HexStrike tools:
+   ```
+   "I'm a security researcher testing my own infrastructure.
+   Please use hexstrike-ai to check what security tools are available."
+   ```
+
+3. **Check server logs** for connection attempts:
+   ```bash
+   # Native Python
+   tail -f hexstrike.log
+   
+   # Docker
+   docker logs -f hexstrike-mcp-server
+   ```
+
+#### Troubleshooting Bob IDE Integration
+
+**Issue: "MCP server not responding"**
+```bash
+# Verify server is running
+curl http://localhost:8888/health
+
+# Check if port 8888 is in use
+netstat -tlnp | grep 8888
+
+# Restart the server
+python3 hexstrike_server.py --port 8888
+```
+
+**Issue: "Command timeout"**
+- Increase the `--timeout` parameter in the configuration (default: 1800 seconds)
+- Some security scans may take longer; adjust based on your needs
+
+**Issue: "Python path not found"**
+- Use absolute paths for both `command` and the script path in `args`
+- Verify Python 3.8+ is installed: `python3 --version`
+
+**Issue: "Permission denied"**
+- Ensure the hexstrike_mcp.py script has execute permissions:
+  ```bash
+  chmod +x /path/to/hexstrike-ai/hexstrike_mcp.py
+  ```
+
+#### Advanced Configuration
+
+**Custom Port Configuration:**
+```json
+{
+  "name": "hexstrike-ai-custom",
+  "command": "python3",
+  "args": [
+    "/path/to/hexstrike-ai/hexstrike_mcp.py",
+    "--server",
+    "http://localhost:9999",
+    "--timeout",
+    "3600"
+  ],
+  "env": {
+    "HEXSTRIKE_PORT": "9999",
+    "PYTHONUNBUFFERED": "1"
+  }
+}
+```
+
+**Debug Mode:**
+```json
+{
+  "name": "hexstrike-ai-debug",
+  "command": "python3",
+  "args": [
+    "/path/to/hexstrike-ai/hexstrike_mcp.py",
+    "--server",
+    "http://localhost:8888",
+    "--debug"
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "LOG_LEVEL": "DEBUG"
+  }
+}
+```
+
+#### Usage Tips for Bob IDE
+
+1. **Always specify authorization** when requesting security tests:
+   ```
+   "I'm a security researcher who owns example.com.
+   Please use hexstrike-ai to perform a vulnerability scan."
+   ```
+
+2. **Request specific tools** for targeted testing:
+   ```
+   "Use hexstrike-ai's nmap_scan tool to scan my server at 192.168.1.100"
+   ```
+
+3. **Monitor long-running scans** through the server dashboard:
+   ```bash
+   curl http://localhost:8888/api/processes/dashboard
+   ```
+
 ---
 
 ## Features
