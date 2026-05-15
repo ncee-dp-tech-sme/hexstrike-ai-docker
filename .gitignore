@@ -39,3 +39,8 @@ qs_explorer_result/quantum_safe_api_discovery_cbom.json
 qs_explorer_result/quantum_safe_api_discovery_findings.json
 qs_scan_result/scan-results/findings.json
 qs_scan_result/scan-results/quantum_safe_cbom.json
+Security_Assessment_Report_qradar.cool8.nl.md
+Security_Assessment_Report_IBM_Guardium_GCM.md
+Security_Assessment_Report_oidc_techzone_ibm.md
+Penetration_Test_Report_IBM_Guardium_OIDC.md
+Penetration_Test_Report_techbuddies.uk.md
