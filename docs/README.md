@@ -92,7 +92,7 @@ chmod 0755 ../logs/hexstrike.log
 
 podman run -d -p 8888:8888 \
   --name hexstrike-mcp-server \
-  --network bridge \
+  --network=pasta:--map-gw,-T,auto \
   --platform linux/arm64 \
   --privileged \
   -v $(pwd)/logs/hexstrike.log:/opt/hexstrike/hexstrike.log:rw \
