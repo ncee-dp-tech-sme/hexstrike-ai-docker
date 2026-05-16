@@ -1,6 +1,6 @@
 # HexStrike OpenShift Deployment Package
 
-A streamlined, interactive deployment tool for deploying the HexStrike MCP server to OpenShift Container Platform with built-in authentication.
+A streamlined, interactive deployment tool for deploying the HexStrike MCP server to OpenShift and Kubernetes with built-in basic authentication.
 
 ## MCP Client Setup
 
@@ -41,8 +41,8 @@ brew install pkg-config
 1. **Setup MCP Client**: Follow the MCP Client Setup section above
 2. **Prerequisites**: Ensure you have `oc` CLI installed and are logged into your OpenShift cluster
 3. **Run the deployment**: `./deploy-interactive.sh`
-4. **Follow the prompts**: The script will guide you through namespace creation, authentication setup, and deployment
-5. **Access your service**: Use the route URL provided at the end of deployment
+4. **Follow the prompts**: The script will guide you through namespace creation, basic authentication setup, and deployment
+5. **Access your service**: Use the OpenShift route URL provided at the end of deployment, or the Kubernetes Service access details
 
 ## Requirements
 
@@ -58,8 +58,8 @@ brew install pkg-config
 ## Features
 
 - **Interactive Setup**: Guided prompts for all configuration options
-- **Authentication Options**: Choose between Basic Auth or OAuth2 Proxy
-- **Automated Deployment**: Handles namespace, secrets, deployments, services, and routes
+- **Authentication**: Optional basic authentication using an nginx proxy and htpasswd secret
+- **Automated Deployment**: Handles namespaces, secrets, service accounts, role bindings, configmaps, deployments, services, and OpenShift routes
 - **Validation**: Built-in checks for prerequisites and deployment status
 - **Rollback Support**: Easy cleanup and redeployment options
 
@@ -71,8 +71,8 @@ For detailed instructions, troubleshooting, and advanced configuration options, 
 
 For issues or questions:
 - Review the full documentation in `INTERACTIVE_DEPLOYMENT.md`
-- Check OpenShift logs: `oc logs -f deployment/hexstrike-mcp`
-- Verify route status: `oc get route hexstrike-mcp`
+- Check logs: `oc logs -l app=hexstrike-ai-docker -n <namespace> -f`
+- Verify route status: `oc get route hexstrike-ai-docker -n <namespace>`
 
 ## Security Notes
 

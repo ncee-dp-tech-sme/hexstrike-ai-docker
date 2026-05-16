@@ -2,6 +2,10 @@
 
 This guide explains how to use the interactive deployment script to deploy HexStrike AI to OpenShift or Kubernetes clusters.
 
+<!--
+2026-05-17: Updated documentation to match deploy-interactive.sh resource names and basic-auth-only flow
+-->
+
 ## Overview
 
 The `deploy-interactive.sh` script provides a user-friendly, interactive way to deploy HexStrike AI with the following features:
@@ -88,11 +92,14 @@ If enabled, you'll be prompted for:
 
 ### Step 4: Deployment
 The script will:
-1. Create authentication secret (if enabled)
-2. Deploy nginx authentication proxy (if enabled)
-3. Deploy the HexStrike AI application
-4. Create external access (Route for OpenShift, Service for Kubernetes)
-5. Wait for deployments to be ready
+1. Create the `hexstrike-basic-auth` secret (if enabled)
+2. Create the `hexstrike-ai-privileged` ServiceAccount
+3. Create the OpenShift `system:openshift:scc:privileged` RoleBinding (OpenShift only)
+4. Create the `nginx-auth-config` ConfigMap (if enabled)
+5. Deploy the `hexstrike-ai-docker` Deployment
+6. Create the `hexstrike-ai-docker` Service
+7. Create the `hexstrike-ai-docker` Route on OpenShift, or provide Service access guidance on Kubernetes
+8. Wait for the `hexstrike-ai-docker` Deployment to be ready
 
 ### Step 5: Configuration Output
 After successful deployment, the script displays:
@@ -175,16 +182,15 @@ When authentication is enabled, the script:
 ### Architecture with Authentication
 
 ```
-Internet → Route/Ingress → Nginx Auth Proxy → HexStrike AI
-                            (Basic Auth)        (Port 8888)
-                            (Port 8080)
+Internet → Route/Service Access → hexstrike-ai-docker Service → nginx-auth container → HexStrike AI container
+                                                          (Port 8080)            (Basic Auth)            (Port 8888)
 ```
 
 ### Architecture without Authentication
 
 ```
-Internet → Route/Ingress → HexStrike AI
-                            (Port 8888)
+Internet → Route/Service Access → hexstrike-ai-docker Service → HexStrike AI container
+                                                          (Port 8888)
 ```
 
 ## Troubleshooting
@@ -242,27 +248,23 @@ Internet → Route/Ingress → HexStrike AI
 ### Change Password
 1. Run the script again with new credentials
 2. The script will update the existing secret
-3. Restart the nginx proxy:
+3. Restart the deployment:
    ```bash
    oc rollout restart deployment/hexstrike-ai-docker -n hexstrike
    ```
 
 ### Disable Authentication
-1. Delete the nginx proxy:
-   ```bash
-   oc delete deployment hexstrike-ai-docker -n hexstrike
-   oc delete service hexstrike-ai-docker -n hexstrike
-   ```
+1. Run the script again and choose not to enable authentication.
 
-2. Update the route to point directly to the application:
-   ```bash
-   oc apply -f route.yaml -n hexstrike
-   ```
+2. The script will keep using the same `hexstrike-ai-docker` Deployment and Service names, but without creating or mounting:
+   - `hexstrike-basic-auth`
+   - `nginx-auth-config`
+   - the `nginx-auth` container
 
 ### Enable Authentication (if previously disabled)
 1. Run the script again
 2. Choose to enable authentication
-3. The script will deploy the nginx proxy
+3. The script will create `hexstrike-basic-auth`, create `nginx-auth-config`, and deploy the `nginx-auth` container inside the `hexstrike-ai-docker` pod
 
 ## Uninstalling
 
@@ -270,18 +272,20 @@ To remove the deployment:
 
 ```bash
 # OpenShift
-oc delete all -l app=hexstrike-ai-docker -n hexstrike
-oc delete all -l app=hexstrike-ai-docker -n hexstrike
+oc delete deployment hexstrike-ai-docker -n hexstrike
+oc delete service hexstrike-ai-docker -n hexstrike
+oc delete route hexstrike-ai-docker -n hexstrike
 oc delete secret hexstrike-basic-auth -n hexstrike
 oc delete configmap nginx-auth-config -n hexstrike
-oc delete serviceaccount hexstrike-sa -n hexstrike
+oc delete serviceaccount hexstrike-ai-privileged -n hexstrike
+oc delete rolebinding system:openshift:scc:privileged -n hexstrike
 
 # Kubernetes
-kubectl delete all -l app=hexstrike-ai-docker -n hexstrike
-kubectl delete all -l app=hexstrike-ai-docker -n hexstrike
+kubectl delete deployment hexstrike-ai-docker -n hexstrike
+kubectl delete service hexstrike-ai-docker -n hexstrike
 kubectl delete secret hexstrike-basic-auth -n hexstrike
 kubectl delete configmap nginx-auth-config -n hexstrike
-kubectl delete serviceaccount hexstrike-sa -n hexstrike
+kubectl delete serviceaccount hexstrike-ai-privileged -n hexstrike
 ```
 
 ## Security Best Practices
