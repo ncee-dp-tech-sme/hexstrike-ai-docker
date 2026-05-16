@@ -10,7 +10,7 @@ Today we've significantly enhanced the deployment experience for HexStrike AI MC
 
 The deployment now supports both basic authentication and OAuth2 proxy configurations, ensuring your pentest environment is secure by default. Whether you're running on vanilla Kubernetes or OpenShift, the script handles platform-specific requirements automatically, including route creation, ingress setup, and certificate management.
 
-For detailed deployment instructions and MCP client configuration, visit: https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/container-deployment
+For detailed deployment instructions and MCP client configuration, visit: https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist
 
 ---
 
