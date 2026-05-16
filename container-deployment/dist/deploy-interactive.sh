@@ -552,12 +552,12 @@ wait_for_deployment() {
     local cli=$(get_cli)
     local deployment=$1
     
-    print_info "Waiting for deployment '$deployment' to be ready..."
+    print_info "Waiting for deployment '$deployment' to be ready... \ this can take a while so be patient please"
     
     if [ "$PLATFORM" = "openshift" ]; then
-        $cli rollout status deployment/"$deployment" -n "$NAMESPACE" --timeout=300s
+        $cli rollout status deployment/"$deployment" -n "$NAMESPACE" --timeout=900s
     else
-        $cli rollout status deployment/"$deployment" -n "$NAMESPACE" --timeout=300s
+        $cli rollout status deployment/"$deployment" -n "$NAMESPACE" --timeout=900s
     fi
     
     print_success "Deployment '$deployment' is ready"
