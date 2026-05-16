@@ -149,7 +149,7 @@ oc get pods -n hexstrike
 ### Kubernetes
 ```bash
 # Port forward (if needed)
-kubectl port-forward svc/hexstrike-nginx-auth 8080:8080 -n hexstrike
+kubectl port-forward svc/hexstrike-ai-docker 8080:8080 -n hexstrike
 
 # Test with authentication
 curl -u admin:your-password http://localhost:8080/health
@@ -202,7 +202,7 @@ Internet → Route/Ingress → HexStrike AI
 
 2. Check nginx proxy logs:
    ```bash
-   oc logs -l app=hexstrike-nginx-auth -n hexstrike
+   oc logs -l app=hexstrike-ai-docker -n hexstrike
    ```
 
 3. Verify the password hash:
@@ -244,14 +244,14 @@ Internet → Route/Ingress → HexStrike AI
 2. The script will update the existing secret
 3. Restart the nginx proxy:
    ```bash
-   oc rollout restart deployment/hexstrike-nginx-auth -n hexstrike
+   oc rollout restart deployment/hexstrike-ai-docker -n hexstrike
    ```
 
 ### Disable Authentication
 1. Delete the nginx proxy:
    ```bash
-   oc delete deployment hexstrike-nginx-auth -n hexstrike
-   oc delete service hexstrike-nginx-auth -n hexstrike
+   oc delete deployment hexstrike-ai-docker -n hexstrike
+   oc delete service hexstrike-ai-docker -n hexstrike
    ```
 
 2. Update the route to point directly to the application:
@@ -271,14 +271,14 @@ To remove the deployment:
 ```bash
 # OpenShift
 oc delete all -l app=hexstrike-ai-docker -n hexstrike
-oc delete all -l app=hexstrike-nginx-auth -n hexstrike
+oc delete all -l app=hexstrike-ai-docker -n hexstrike
 oc delete secret hexstrike-basic-auth -n hexstrike
 oc delete configmap nginx-auth-config -n hexstrike
 oc delete serviceaccount hexstrike-sa -n hexstrike
 
 # Kubernetes
 kubectl delete all -l app=hexstrike-ai-docker -n hexstrike
-kubectl delete all -l app=hexstrike-nginx-auth -n hexstrike
+kubectl delete all -l app=hexstrike-ai-docker -n hexstrike
 kubectl delete secret hexstrike-basic-auth -n hexstrike
 kubectl delete configmap nginx-auth-config -n hexstrike
 kubectl delete serviceaccount hexstrike-sa -n hexstrike
