@@ -13,7 +13,8 @@ import sys
 from typing import Dict, Any
 
 # Configuration
-SERVER_URL = "http://localhost:8888"
+# SERVER_URL = "http://localhost:8888"
+SERVER_URL = "http://localhost:10443/"
 TIMEOUT = 30  # seconds
 
 def print_header(text: str):
