@@ -18,7 +18,7 @@ For detailed deployment instructions and MCP client configuration, visit: https:
 
 [![Build and Push Multi-Arch Container](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml/badge.svg?event=repository_dispatch)](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/actions/workflows/main.yml)
 
-- [Bob Pentest Mode Git Repository]([https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist))
+- [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist)
 
 # update 25 february 2026: Pre-build container image for HexStrike AI MCP server availabe on GHCR.
   
