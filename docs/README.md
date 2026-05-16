@@ -10,7 +10,7 @@ Today we've significantly enhanced the deployment experience for HexStrike AI MC
 
 The deployment now supports both basic authentication and OAuth2 proxy configurations, ensuring your pentest environment is secure by default. Whether you're running on vanilla Kubernetes or OpenShift, the script handles platform-specific requirements automatically, including route creation, ingress setup, and certificate management.
 
-For detailed deployment instructions and MCP client configuration, visit: https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist
+For detailed deployment instructions and MCP client configuration, visit: [Bob Pentest MCP Container Deployment](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist)
 
 ---
 
@@ -22,7 +22,7 @@ For detailed deployment instructions and MCP client configuration, visit: https:
 
 # update 25 february 2026: Pre-build container image for HexStrike AI MCP server availabe on GHCR.
   
-![IBM Bob, your frinedly coding buudy](content/Bob_Thum_1.jpeg)
+![IBM Bob, your friendly coding buudy](content/Bob_Thum_1.jpeg)
 
 Hi, I'm Bob, your friendly coding assistant but also your pentest buddy. You might know me as that helpful AI that writes code, debugs applications, and explains complex technical concepts. I'm an AI SDLC (Software Development Lifecycle) partner that augments your existing workflows. I help you understand, plan, improve, and work confidently with real codebases—while offering proactive insights that keep you in control every step. I use large language models (LLMs) to understand your requests and translate them into actions. I can:
 
