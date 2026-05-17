@@ -134,6 +134,7 @@ The script generates a complete MCP configuration that you can add to your `.bob
     }
 }
 ```
+**Important**: Follow the guidance from the readme.md to install the mcp_client before adding the server to your IDE. 
 
 **Important**: Update the paths to match your local setup:
 - Replace `/path/to/python` with your Python interpreter path
