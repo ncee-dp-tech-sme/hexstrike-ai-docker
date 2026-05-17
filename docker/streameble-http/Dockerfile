@@ -839,7 +839,7 @@ VOLUME ["/root/.cache/trivy", \
         "/workspace"]
 
 # Copy server code at the end to leverage Docker layer caching
-COPY docker/streameble-http/hexstrike_server.py /opt/hexstrike/
+COPY container-deployment/dist/hexstrike_server.py /opt/hexstrike/
 
 # Expose MCP server port
 EXPOSE 5432
