@@ -2,6 +2,11 @@
 """
 Test script for HexStrike SSE Streaming API
 
+NOTE: This script requires the requests module. Run with the virtual environment:
+  source .venv/bin/activate && python3 docker/streameble-http/test_streaming.py
+Or use the venv Python directly:
+  .venv/bin/python3 docker/streameble-http/test_streaming.py
+
 This script demonstrates how to use the streaming API endpoints
 and validates that streaming functionality works correctly.
 """
@@ -10,12 +15,24 @@ import requests
 import json
 import time
 import sys
-from typing import Dict, Any
+import os
+from typing import Dict, Any, Optional
+from requests.auth import HTTPBasicAuth
 
 # Configuration
 # SERVER_URL = "http://localhost:8888"
-SERVER_URL = "http://localhost:10443/"
+SERVER_URL = os.getenv("HEXSTRIKE_SERVER_URL", "https://hexstrike-ai-docker-pentest.apps.itz-c25mbk.hub01-lb.techzone.ibm.com/")
 TIMEOUT = 30  # seconds
+
+# Authentication (optional - set via environment variables)
+AUTH_USERNAME = os.getenv("HEXSTRIKE_USERNAME", "")
+AUTH_PASSWORD = os.getenv("HEXSTRIKE_PASSWORD", "")
+
+def get_auth() -> Optional[HTTPBasicAuth]:
+    """Get HTTP Basic Auth if credentials are provided"""
+    if AUTH_USERNAME and AUTH_PASSWORD:
+        return HTTPBasicAuth(AUTH_USERNAME, AUTH_PASSWORD)
+    return None
 
 def print_header(text: str):
     """Print formatted header"""
@@ -39,7 +56,7 @@ def test_health_check() -> bool:
     """Test server health check"""
     print_header("Test 1: Server Health Check")
     try:
-        response = requests.get(f"{SERVER_URL}/health", timeout=5)
+        response = requests.get(f"{SERVER_URL}/health", timeout=5, auth=get_auth())
         if response.status_code == 200:
             data = response.json()
             print_success(f"Server is healthy")
@@ -69,7 +86,8 @@ def test_create_streaming_task() -> str:
         response = requests.post(
             f"{SERVER_URL}/api/stream/create",
             json=payload,
-            timeout=5
+            timeout=5,
+            auth=get_auth()
         )
         
         if response.status_code == 200:
@@ -94,7 +112,8 @@ def test_get_task_info(task_id: str) -> bool:
     try:
         response = requests.get(
             f"{SERVER_URL}/api/stream/{task_id}/info",
-            timeout=5
+            timeout=5,
+            auth=get_auth()
         )
         
         if response.status_code == 200:
@@ -119,7 +138,8 @@ def test_start_streaming_task(task_id: str) -> bool:
     try:
         response = requests.post(
             f"{SERVER_URL}/api/stream/{task_id}/start",
-            timeout=5
+            timeout=5,
+            auth=get_auth()
         )
         
         if response.status_code == 200:
@@ -145,7 +165,8 @@ def test_stream_output(task_id: str) -> bool:
         response = requests.get(
             f"{SERVER_URL}/api/stream/{task_id}",
             stream=True,
-            timeout=TIMEOUT
+            timeout=TIMEOUT,
+            auth=get_auth()
         )
         
         if response.status_code != 200:
@@ -211,7 +232,8 @@ def test_list_tasks() -> bool:
     try:
         response = requests.get(
             f"{SERVER_URL}/api/stream/tasks",
-            timeout=5
+            timeout=5,
+            auth=get_auth()
         )
         
         if response.status_code == 200:
@@ -245,7 +267,8 @@ def test_tool_specific_streaming() -> bool:
         response = requests.post(
             f"{SERVER_URL}/api/stream/create",
             json=payload,
-            timeout=5
+            timeout=5,
+            auth=get_auth()
         )
         
         if response.status_code == 200:
@@ -259,7 +282,8 @@ def test_tool_specific_streaming() -> bool:
             # Check final status
             info_response = requests.get(
                 f"{SERVER_URL}/api/stream/{task_id}/info",
-                timeout=5
+                timeout=5,
+                auth=get_auth()
             )
             
             if info_response.status_code == 200:
@@ -279,6 +303,13 @@ def main():
     print("\n" + "="*70)
     print("  HexStrike SSE Streaming API Test Suite")
     print("="*70)
+    
+    # Display configuration
+    print(f"\nServer: {SERVER_URL}")
+    if AUTH_USERNAME:
+        print(f"Authentication: Enabled (user: {AUTH_USERNAME})")
+    else:
+        print("Authentication: Disabled (set HEXSTRIKE_USERNAME and HEXSTRIKE_PASSWORD to enable)")
     
     results = []
     
