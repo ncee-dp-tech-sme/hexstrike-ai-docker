@@ -5,6 +5,7 @@
 # Compatible with Bash and ZSH on Linux and macOS
 # 2026-05-16: Created interactive deployment script with authentication
 # 2026-05-16: Fixed to match working deployment - multi-container pod, correct image, volumes, labels
+# 2026-05-17: Added image pull policy prompt and YAML persistence in deployment-yamls subfolder
 
 set -e  # Exit on any error
 
@@ -24,6 +25,8 @@ ADMIN_USERNAME="admin"
 ADMIN_PASSWORD=""
 ROUTE_HOST=""
 USE_AUTH="yes"
+IMAGE_PULL_POLICY="IfNotPresent"
+YAML_DIR=""
 
 # Function to print colored output
 print_banner() {
@@ -206,6 +209,43 @@ prompt_authentication() {
     print_success "Authentication configured"
 }
 
+# Function to prompt for image pull policy
+prompt_image_pull_policy() {
+    print_step "Step 4: Image Pull Policy Configuration"
+    
+    echo -e "${CYAN}Always pull the latest image from the registry?${NC}"
+    echo -e "${YELLOW}Note: 'Always' ensures you get the latest updates but increases network usage${NC}"
+    echo -e "${YELLOW}      'IfNotPresent' uses cached images when available (faster startup)${NC}"
+    echo ""
+    read -p "Always pull latest image? (y/N): " pull_always
+    
+    if [[ $pull_always =~ ^[Yy]$ ]]; then
+        IMAGE_PULL_POLICY="Always"
+        print_success "Image pull policy set to: Always"
+    else
+        IMAGE_PULL_POLICY="IfNotPresent"
+        print_success "Image pull policy set to: IfNotPresent"
+    fi
+}
+
+# Function to setup YAML directory
+setup_yaml_directory() {
+    # Create deployment-yamls directory in current working directory
+    YAML_DIR="$(pwd)/deployment-yamls"
+    
+    if [ -d "$YAML_DIR" ]; then
+        print_warning "Directory '$YAML_DIR' already exists"
+        read -p "Overwrite existing YAML files? (y/N): " overwrite
+        if [[ ! $overwrite =~ ^[Yy]$ ]]; then
+            print_error "Cannot proceed without overwriting. Please remove or rename the directory."
+            exit 1
+        fi
+    else
+        mkdir -p "$YAML_DIR"
+        print_success "Created YAML directory: $YAML_DIR"
+    fi
+}
+
 # Function to generate htpasswd hash
 generate_htpasswd() {
     local username=$1
@@ -230,7 +270,7 @@ create_auth_secret() {
     print_info "Creating authentication secret..."
     
     # Create secret YAML
-    cat > /tmp/hexstrike-secret.yaml <<EOF
+    cat > "$YAML_DIR/hexstrike-secret.yaml" <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -244,8 +284,7 @@ stringData:
     $htpasswd_entry
 EOF
     
-    $cli apply -f /tmp/hexstrike-secret.yaml
-    rm -f /tmp/hexstrike-secret.yaml
+    $cli apply -f "$YAML_DIR/hexstrike-secret.yaml"
     
     print_success "Authentication secret created"
 }
@@ -254,11 +293,11 @@ EOF
 deploy_application() {
     local cli=$(get_cli)
     
-    print_step "Step 4: Deploying HexStrike AI Application"
+    print_step "Step 5: Deploying HexStrike AI Application"
     
     # Create ServiceAccount with correct namespace
     print_info "Creating ServiceAccount..."
-    cat > /tmp/hexstrike-serviceaccount.yaml <<EOF
+    cat > "$YAML_DIR/hexstrike-serviceaccount.yaml" <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -268,13 +307,12 @@ metadata:
   namespace: $NAMESPACE
 EOF
     
-    $cli apply -f /tmp/hexstrike-serviceaccount.yaml
-    rm -f /tmp/hexstrike-serviceaccount.yaml
+    $cli apply -f "$YAML_DIR/hexstrike-serviceaccount.yaml"
     
     if [ "$PLATFORM" = "openshift" ]; then
         # Create SCC RoleBinding with correct namespace
         print_info "Creating SCC RoleBinding for privileged access..."
-        cat > /tmp/hexstrike-scc-rolebinding.yaml <<EOF
+        cat > "$YAML_DIR/hexstrike-scc-rolebinding.yaml" <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -290,8 +328,7 @@ subjects:
   namespace: $NAMESPACE
 EOF
         
-        $cli apply -f /tmp/hexstrike-scc-rolebinding.yaml
-        rm -f /tmp/hexstrike-scc-rolebinding.yaml
+        $cli apply -f "$YAML_DIR/hexstrike-scc-rolebinding.yaml"
         
         print_info "Waiting for RBAC to propagate..."
         sleep 3
@@ -300,7 +337,7 @@ EOF
     # Create nginx configmap if authentication is enabled
     if [ "$USE_AUTH" = "yes" ]; then
         print_info "Creating nginx authentication configuration..."
-        cat > /tmp/nginx-auth-config.yaml <<EOF
+        cat > "$YAML_DIR/nginx-auth-config.yaml" <<EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -329,13 +366,12 @@ data:
     }
 EOF
         
-        $cli apply -f /tmp/nginx-auth-config.yaml
-        rm -f /tmp/nginx-auth-config.yaml
+        $cli apply -f "$YAML_DIR/nginx-auth-config.yaml"
     fi
     
     # Create deployment with multi-container pod
     print_info "Creating Deployment with multi-container pod..."
-    cat > /tmp/hexstrike-deployment.yaml <<EOF
+    cat > "$YAML_DIR/hexstrike-deployment.yaml" <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -369,7 +405,7 @@ EOF
 
     # Add nginx-auth container if authentication is enabled
     if [ "$USE_AUTH" = "yes" ]; then
-        cat >> /tmp/hexstrike-deployment.yaml <<EOF
+        cat >> "$YAML_DIR/hexstrike-deployment.yaml" <<EOF
       - name: nginx-auth
         image: nginxinc/nginx-unprivileged:alpine
         ports:
@@ -393,10 +429,10 @@ EOF
     fi
 
     # Add main hexstrike container
-    cat >> /tmp/hexstrike-deployment.yaml <<EOF
+    cat >> "$YAML_DIR/hexstrike-deployment.yaml" <<EOF
       - name: hexstrike-ai-docker
         image: ghcr.io/ncee-dp-tech-sme/hexstrike-ai-docker:latest
-        imagePullPolicy: Always
+        imagePullPolicy: $IMAGE_PULL_POLICY
         env:
         - name: TZ
           value: Europe/Amsterdam
@@ -448,7 +484,7 @@ EOF
 
     # Add nginx volumes if authentication is enabled
     if [ "$USE_AUTH" = "yes" ]; then
-        cat >> /tmp/hexstrike-deployment.yaml <<EOF
+        cat >> "$YAML_DIR/hexstrike-deployment.yaml" <<EOF
       - name: nginx-config
         configMap:
           name: nginx-auth-config
@@ -458,12 +494,11 @@ EOF
 EOF
     fi
     
-    $cli apply -f /tmp/hexstrike-deployment.yaml
-    rm -f /tmp/hexstrike-deployment.yaml
+    $cli apply -f "$YAML_DIR/hexstrike-deployment.yaml"
     
     # Create service with all ports
     print_info "Creating Service..."
-    cat > /tmp/hexstrike-service.yaml <<EOF
+    cat > "$YAML_DIR/hexstrike-service.yaml" <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -496,8 +531,7 @@ spec:
   type: ClusterIP
 EOF
     
-    $cli apply -f /tmp/hexstrike-service.yaml
-    rm -f /tmp/hexstrike-service.yaml
+    $cli apply -f "$YAML_DIR/hexstrike-service.yaml"
     
     print_success "Application deployed with multi-container pod"
 }
@@ -506,11 +540,11 @@ EOF
 create_route() {
     local cli=$(get_cli)
     
-    print_step "Step 5: Creating External Access"
+    print_step "Step 6: Creating External Access"
     
     if [ "$PLATFORM" = "openshift" ]; then
         # Create route pointing to main service on port 8080-tcp
-        cat > /tmp/hexstrike-route.yaml <<EOF
+        cat > "$YAML_DIR/hexstrike-route.yaml" <<EOF
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -534,8 +568,7 @@ spec:
     insecureEdgeTerminationPolicy: Redirect
 EOF
         
-        $cli apply -f /tmp/hexstrike-route.yaml
-        rm -f /tmp/hexstrike-route.yaml
+        $cli apply -f "$YAML_DIR/hexstrike-route.yaml"
         
         ROUTE_HOST=$($cli get route hexstrike-ai-docker -n "$NAMESPACE" -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
         print_success "Route created: https://$ROUTE_HOST"
@@ -670,12 +703,20 @@ main() {
     # Step 3: Prompt for authentication
     prompt_authentication
     
+    # Step 4: Prompt for image pull policy
+    prompt_image_pull_policy
+    
+    # Setup YAML directory
+    setup_yaml_directory
+    
     # Confirmation
     echo ""
     print_warning "Ready to deploy with the following configuration:"
     echo "  Platform: $PLATFORM"
     echo "  Namespace: $NAMESPACE"
     echo "  Authentication: $([ "$USE_AUTH" = "yes" ] && echo "Enabled" || echo "Disabled")"
+    echo "  Image Pull Policy: $IMAGE_PULL_POLICY"
+    echo "  YAML Directory: $YAML_DIR"
     echo ""
     read -p "Continue with deployment? (y/n): " confirm
     
@@ -707,6 +748,7 @@ main() {
     
     echo ""
     print_success "Deployment completed successfully!"
+    print_info "YAML files saved in: $YAML_DIR"
     echo ""
 }
 
