@@ -114,8 +114,8 @@ graph TD
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/0x4m4/hexstrike-ai.git
-cd hexstrike-ai
+git clone https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker.git
+cd hexstrike-ai-docker
 
 # 2. Create virtual environment
 python3 -m venv hexstrike-env
@@ -126,7 +126,7 @@ source hexstrike-env/bin/activate  # Linux/Mac
 pip3 install -r requirements.txt
 
 ```
-Ecco la versione corretta (inglese, struttura invariata):
+
 
 ````markdown
 ### 🐳 Docker Installation
@@ -141,8 +141,8 @@ Rationale:
 
 ```bash
 # 1) Clone the repository
-git clone https://github.com/0x4m4/hexstrike-ai.git
-cd hexstrike-ai
+git clone https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker.git
+cd hexstrike-ai-docker
 chmod +x ./docker/*.sh
 
 # 2) Build the Docker image
