@@ -16,22 +16,26 @@ brew install pkg-config
 
 ### Setup Steps
 
-1. **Create a Python virtual environment**:
+
+1. **Clone the repository
+   git clone https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker.git
+   cd hexstrike-ai-docker
+2. Create a Python virtual environment**:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    ```
 
-2. **Install Python dependencies**:
+3. **Install Python dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure the MCP client**:
+4. **Configure the MCP client**:
    - The `hexstrike_mcp.py` file contains the MCP server implementation
    - Update connection settings as needed for your environment
 
-4. **Test the MCP client locally** (optional):
+5. **Test the MCP client locally** (optional):
    ```bash
    python hexstrike_mcp.py
    ```
