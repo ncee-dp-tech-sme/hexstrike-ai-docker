@@ -1,17 +1,3 @@
-## Update May 16 2026: New Kubernetes and OpenShift Deployment with Authentication
-
-Today we've significantly enhanced the deployment experience for HexStrike AI MCP Server on Kubernetes and OpenShift platforms. The new interactive deployment script (`deploy-interactive.sh`) makes it incredibly easy to get Bob's pentest capabilities running in your cluster with just a few prompts. Key improvements include:
-
-- **Interactive Deployment**: Guided setup that automatically detects your platform (Kubernetes/OpenShift) and configures everything accordingly
-- **Built-in Authentication**: Optional basic authentication is provided through an nginx proxy and htpasswd secret
-- **Intelligent Resource Management**: Dynamic creation of namespaces, service accounts, configmaps, secrets, services, deployments, and proper RBAC configurations
-- **OpenShift Optimizations**: Automatic handling of privileged Security Context Constraints (SCC) for tools requiring elevated permissions
-- **Complete MCP Integration**: Full setup of the Model Context Protocol client with basic authentication support, ready to connect to your IDE
-
-The deployment uses basic authentication only, ensuring your pentest environment is protected by default when enabled. Whether you're running on vanilla Kubernetes or OpenShift, the script handles platform-specific requirements automatically, including namespace creation, Service deployment, and OpenShift route creation.
-
-For detailed deployment instructions and MCP client configuration, visit: [Bob Pentest MCP Container Deployment](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist)
-
 ---
 
 # Meet Bob: Your AI-Powered Penetration Testing Companion
@@ -20,7 +6,6 @@ For detailed deployment instructions and MCP client configuration, visit: [Bob P
 
 - [Bob Pentest Mode Git Repository](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker)
 
-# update 25 february 2026: Pre-build container image for HexStrike AI MCP server availabe on GHCR.
   
 ![IBM Bob, your friendly coding buudy](content/Bob_Thum_1.jpeg)
 
@@ -45,6 +30,20 @@ I can help with a variety of coding tasks, including:
 
 But today, I want to introduce you to my darker side – my **🔐 Pentest Mode**.
 
+## update 25 february 2026: Pre-build container image for HexStrike AI MCP server availabe on GHCR.
+## Update May 16 2026: New Kubernetes and OpenShift Deployment with Authentication
+
+Today we've significantly enhanced the deployment experience for HexStrike AI MCP Server on Kubernetes and OpenShift platforms. The new interactive deployment script (`deploy-interactive.sh`) makes it incredibly easy to get Bob's pentest capabilities running in your cluster with just a few prompts. Key improvements include:
+
+- **Interactive Deployment**: Guided setup that automatically detects your platform (Kubernetes/OpenShift) and configures everything accordingly
+- **Built-in Authentication**: Optional basic authentication is provided through an nginx proxy and htpasswd secret
+- **Intelligent Resource Management**: Dynamic creation of namespaces, service accounts, configmaps, secrets, services, deployments, and proper RBAC configurations
+- **OpenShift Optimizations**: Automatic handling of privileged Security Context Constraints (SCC) for tools requiring elevated permissions
+- **Complete MCP Integration**: Full setup of the Model Context Protocol client with basic authentication support, ready to connect to your IDE
+
+The deployment uses basic authentication only, ensuring your pentest environment is protected by default when enabled. Whether you're running on vanilla Kubernetes or OpenShift, the script handles platform-specific requirements automatically, including namespace creation, Service deployment, and OpenShift route creation.
+
+For detailed deployment instructions and MCP client configuration, visit: [Bob Pentest MCP Container Deployment](https://github.com/ncee-dp-tech-sme/hexstrike-ai-docker/tree/docker/container-deployment/dist)
 
 ## From Code Helper to Security Sentinel
 
