@@ -4,6 +4,7 @@ This guide explains how to use the interactive deployment script to deploy HexSt
 
 <!--
 2026-05-17: Updated documentation to match deploy-interactive.sh resource names and basic-auth-only flow
+2026-05-17: Documented automatic port-forward to localhost:8080 on Kubernetes
 -->
 
 ## Overview
@@ -14,7 +15,8 @@ The `deploy-interactive.sh` script provides a user-friendly, interactive way to 
 - ✅ **Interactive Configuration**: Prompts for all necessary settings
 - ✅ **Authentication Support**: Built-in basic authentication with nginx proxy
 - ✅ **Cross-Platform**: Works on Linux and macOS with Bash or ZSH
-- ✅ **MCP Configuration**: Generates ready-to-use MCP client configuration
+- ✅ **Automatic Service Exposure**: On Kubernetes, automatically starts a port-forward to `localhost:8080` so no manual step is needed
+- ✅ **MCP Configuration**: Generates ready-to-use MCP client configuration with the correct URL
 
 ## Prerequisites
 
@@ -98,7 +100,7 @@ The script will:
 4. Create the `nginx-auth-config` ConfigMap (if enabled)
 5. Deploy the `hexstrike-ai-docker` Deployment
 6. Create the `hexstrike-ai-docker` Service
-7. Create the `hexstrike-ai-docker` Route on OpenShift, or provide Service access guidance on Kubernetes
+7. Create the `hexstrike-ai-docker` Route on OpenShift, or **automatically start a port-forward to `localhost:8080`** on Kubernetes
 8. Wait for the `hexstrike-ai-docker` Deployment to be ready
 
 ### Step 5: Configuration Output
@@ -155,10 +157,19 @@ oc get pods -n hexstrike
 ```
 
 ### Kubernetes
+
+The script automatically starts a port-forward to `localhost:8080` in the background after deployment.
+The port-forward runs in the current terminal session — if you close it, restart with:
+
 ```bash
-# Port forward (if needed)
+# Auth enabled (nginx proxy on port 8080)
 kubectl port-forward svc/hexstrike-ai-docker 8080:8080 -n hexstrike
 
+# Auth disabled (direct to HexStrike on port 8888)
+kubectl port-forward svc/hexstrike-ai-docker 8080:8888 -n hexstrike
+```
+
+```bash
 # Test with authentication
 curl -u admin:your-password http://localhost:8080/health
 

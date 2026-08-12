@@ -6,6 +6,8 @@
 # 2026-05-16: Created interactive deployment script with authentication
 # 2026-05-16: Fixed to match working deployment - multi-container pod, correct image, volumes, labels
 # 2026-05-17: Added image pull policy prompt and YAML persistence in deployment-yamls subfolder
+# 2026-05-17: Automated port-forward to localhost:8080 on Kubernetes; MCP config URL now always correct
+# 2026-05-17: Fixed OpenShift Route targetPort to use 8888-tcp when authentication is disabled
 
 set -e  # Exit on any error
 
@@ -27,6 +29,8 @@ ROUTE_HOST=""
 USE_AUTH="yes"
 IMAGE_PULL_POLICY="IfNotPresent"
 YAML_DIR=""
+SERVICE_URL=""
+PORT_FORWARD_PID=""
 
 # Function to print colored output
 print_banner() {
@@ -65,11 +69,20 @@ command_exists() {
 }
 
 # Function to detect platform
+# 2026-05-17: Added minikube-user detection to force Kubernetes platform
 detect_platform() {
     print_step "Step 1: Platform Detection"
     
+    # Check if oc is available and logged in
     if command_exists oc; then
         if oc whoami &> /dev/null; then
+            local current_user=$(oc whoami 2>/dev/null)
+            # Force Kubernetes platform if user is minikube-user
+            if [ "$current_user" = "minikube-user" ]; then
+                print_info "Minikube user detected - using Kubernetes platform"
+                PLATFORM="kubernetes"
+                return 0
+            fi
             print_info "OpenShift CLI detected and logged in"
             PLATFORM="openshift"
             return 0
@@ -543,7 +556,12 @@ create_route() {
     print_step "Step 6: Creating External Access"
     
     if [ "$PLATFORM" = "openshift" ]; then
-        # Create route pointing to main service on port 8080-tcp
+        # Route targetPort depends on whether nginx-auth sidecar is present
+        local route_target_port="8080-tcp"
+        if [ "$USE_AUTH" = "no" ]; then
+            route_target_port="8888-tcp"
+        fi
+
         cat > "$YAML_DIR/hexstrike-route.yaml" <<EOF
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -562,7 +580,7 @@ spec:
     kind: Service
     name: hexstrike-ai-docker
   port:
-    targetPort: 8080-tcp
+    targetPort: $route_target_port
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
@@ -596,18 +614,41 @@ wait_for_deployment() {
     print_success "Deployment '$deployment' is ready"
 }
 
+# Start a background port-forward so the service is immediately reachable on localhost:8080
+# Writes the PID to PORT_FORWARD_PID and the access URL to SERVICE_URL
+start_port_forward() {
+    local cli=$(get_cli)
+    local local_port=8080
+
+    # Determine which backend port to forward: 8080 (nginx-auth) when auth is on, else 8888
+    local svc_port=8080
+    if [ "$USE_AUTH" = "no" ]; then
+        svc_port=8888
+    fi
+
+    print_info "Starting port-forward: localhost:${local_port} → svc/hexstrike-ai-docker:${svc_port} ..."
+    $cli port-forward svc/hexstrike-ai-docker "${local_port}:${svc_port}" -n "$NAMESPACE" &>/dev/null &
+    PORT_FORWARD_PID=$!
+
+    # Give it a moment to establish
+    sleep 2
+
+    if kill -0 "$PORT_FORWARD_PID" 2>/dev/null; then
+        SERVICE_URL="http://localhost:${local_port}/"
+        print_success "Port-forward active (PID $PORT_FORWARD_PID) — service reachable at $SERVICE_URL"
+        print_warning "The port-forward runs in the background and will stop when this terminal session ends."
+        print_info  "To keep it running persistently, re-run: $cli port-forward svc/hexstrike-ai-docker ${local_port}:${svc_port} -n $NAMESPACE"
+    else
+        print_warning "Port-forward could not be started automatically."
+        print_info "Start it manually: $cli port-forward svc/hexstrike-ai-docker ${local_port}:${svc_port} -n $NAMESPACE"
+        SERVICE_URL="http://localhost:${local_port}/"
+    fi
+}
+
 # Function to print MCP configuration
 print_mcp_config() {
     print_step "MCP Client Configuration"
-    
-    local server_url=""
-    if [ "$PLATFORM" = "openshift" ] && [ -n "$ROUTE_HOST" ]; then
-        server_url="https://$ROUTE_HOST/"
-    else
-        server_url="http://localhost:8888/"
-        print_warning "For Kubernetes, you may need to port-forward: kubectl port-forward svc/hexstrike-ai-docker 8888:8888 -n $NAMESPACE"
-    fi
-    
+
     echo ""
     echo -e "${CYAN}Add this configuration to your .bob/mcp.json:${NC}"
     echo ""
@@ -618,17 +659,17 @@ print_mcp_config() {
     echo "            \"args\": ["
     echo "                \"/path/to/hexstrike_mcp.py\","
     echo "                \"--server\","
-    echo "                \"$server_url\","
+    echo "                \"$SERVICE_URL\","
     echo "                \"--timeout\","
     echo "                \"1800\""
-    
+
     if [ "$USE_AUTH" = "yes" ]; then
         echo "                ,\"--username\","
         echo "                \"$ADMIN_USERNAME\","
         echo "                \"--password\","
         echo "                \"$ADMIN_PASSWORD\""
     fi
-    
+
     echo "            ],"
     echo "            \"disabled\": false,"
     echo "            \"timeout\": 1800"
@@ -641,42 +682,40 @@ print_mcp_config() {
 # Function to print summary
 print_summary() {
     print_step "Deployment Summary"
-    
+
     local cli=$(get_cli)
-    
+
     echo -e "${GREEN}✓ Platform:${NC} $PLATFORM"
     echo -e "${GREEN}✓ Namespace:${NC} $NAMESPACE"
     echo -e "${GREEN}✓ Authentication:${NC} $([ "$USE_AUTH" = "yes" ] && echo "Enabled" || echo "Disabled")"
-    
+
     if [ "$USE_AUTH" = "yes" ]; then
         echo -e "${GREEN}✓ Username:${NC} $ADMIN_USERNAME"
         echo -e "${GREEN}✓ Password:${NC} ********"
     fi
-    
-    if [ "$PLATFORM" = "openshift" ] && [ -n "$ROUTE_HOST" ]; then
-        echo -e "${GREEN}✓ URL:${NC} https://$ROUTE_HOST"
-        echo ""
-        
-        if [ "$USE_AUTH" = "yes" ]; then
-            echo -e "${CYAN}Test the deployment:${NC}"
-            echo "  curl -u $ADMIN_USERNAME:$ADMIN_PASSWORD https://$ROUTE_HOST/health"
-        else
-            echo -e "${CYAN}Test the deployment:${NC}"
-            echo "  curl https://$ROUTE_HOST/health"
-        fi
+
+    echo -e "${GREEN}✓ Service URL:${NC} $SERVICE_URL"
+    echo ""
+
+    if [ "$USE_AUTH" = "yes" ]; then
+        echo -e "${CYAN}Test the deployment:${NC}"
+        echo "  curl -u $ADMIN_USERNAME:$ADMIN_PASSWORD ${SERVICE_URL}health"
     else
+        echo -e "${CYAN}Test the deployment:${NC}"
+        echo "  curl ${SERVICE_URL}health"
+    fi
+
+    if [ "$PLATFORM" = "kubernetes" ]; then
         echo ""
         echo -e "${CYAN}View services:${NC}"
         echo "  $cli get svc -n $NAMESPACE"
+        local svc_port=8080
+        if [ "$USE_AUTH" = "no" ]; then svc_port=8888; fi
         echo ""
-        echo -e "${CYAN}Port forward (if needed):${NC}"
-        if [ "$USE_AUTH" = "yes" ]; then
-            echo "  $cli port-forward svc/hexstrike-ai-docker 8080:8080 -n $NAMESPACE"
-        else
-            echo "  $cli port-forward svc/hexstrike-ai-docker 8888:8888 -n $NAMESPACE"
-        fi
+        echo -e "${CYAN}Restart port-forward (if session ends):${NC}"
+        echo "  $cli port-forward svc/hexstrike-ai-docker 8080:${svc_port} -n $NAMESPACE"
     fi
-    
+
     echo ""
     echo -e "${CYAN}View logs:${NC}"
     echo "  $cli logs -l app=hexstrike-ai-docker -n $NAMESPACE -f"
@@ -735,11 +774,18 @@ main() {
     
     # Create route/ingress
     create_route
-    
+
     # Wait for deployment
     echo ""
     wait_for_deployment "hexstrike-ai-docker"
-    
+
+    # Set SERVICE_URL: for OpenShift use the route, for Kubernetes start port-forward
+    if [ "$PLATFORM" = "openshift" ] && [ -n "$ROUTE_HOST" ]; then
+        SERVICE_URL="https://$ROUTE_HOST/"
+    else
+        start_port_forward
+    fi
+
     # Print MCP configuration
     print_mcp_config
     

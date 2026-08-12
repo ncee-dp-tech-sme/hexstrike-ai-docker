@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: hexstrike-ai-docker
+    app.kubernetes.io/component: hexstrike-ai-docker
+    app.kubernetes.io/instance: hexstrike-ai-docker
+    app.kubernetes.io/name: hexstrike-ai-docker
+    app.kubernetes.io/part-of: hexstrike-ai-docker-app
+    app.openshift.io/runtime: debian
+  name: hexstrike-ai-docker
+  namespace: hexstrike
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hexstrike-ai-docker
+      deployment: hexstrike-ai-docker
+  template:
+    metadata:
+      labels:
+        app: hexstrike-ai-docker
+        deployment: hexstrike-ai-docker
+    spec:
+      serviceAccountName: hexstrike-ai-privileged
+      securityContext:
+        fsGroup: 0
+        runAsUser: 0
+      containers:
+      - name: hexstrike-ai-docker
+        image: ghcr.io/ncee-dp-tech-sme/hexstrike-ai-docker:latest
+        imagePullPolicy: Always
+        env:
+        - name: TZ
+          value: Europe/Amsterdam
+        ports:
+        - containerPort: 8888
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_ADMIN
+          privileged: true
+          runAsUser: 0
+        volumeMounts:
+        - mountPath: /dev/net/tun
+          name: tun-device
+        - mountPath: /root/.cache/trivy
+          name: trivy-cache
+        - mountPath: /root/.config/amass
+          name: amass-config
+        - mountPath: /root/.msf4
+          name: msf4-data
+        - mountPath: /root/.wpscan/db
+          name: wpscan-db
+        - mountPath: /root/nuclei-templates
+          name: nuclei-templates
+        - mountPath: /workspace
+          name: workspace
+      volumes:
+      - name: tun-device
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+      - name: trivy-cache
+        emptyDir: {}
+      - name: amass-config
+        emptyDir: {}
+      - name: msf4-data
+        emptyDir: {}
+      - name: wpscan-db
+        emptyDir: {}
+      - name: nuclei-templates
+        emptyDir: {}
+      - name: workspace
+        emptyDir: {}

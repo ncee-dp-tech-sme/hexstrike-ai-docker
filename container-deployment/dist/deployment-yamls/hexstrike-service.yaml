@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: hexstrike-ai-docker
+    app.kubernetes.io/component: hexstrike-ai-docker
+    app.kubernetes.io/instance: hexstrike-ai-docker
+    app.kubernetes.io/name: hexstrike-ai-docker
+    app.kubernetes.io/part-of: hexstrike-ai-docker-app
+    app.openshift.io/runtime: debian
+  name: hexstrike-ai-docker
+  namespace: hexstrike
+spec:
+  ports:
+  - name: 5432-tcp
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  - name: 8888-tcp
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  - name: 8080-tcp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: hexstrike-ai-docker
+    deployment: hexstrike-ai-docker
+  type: ClusterIP

@@ -172,6 +172,8 @@ Activate Pentest Mode when:
 - **Interactive Setup**: Guided prompts for all configuration options
 - **Authentication**: Optional basic authentication using an nginx proxy and htpasswd secret
 - **Automated Deployment**: Handles namespaces, secrets, service accounts, role bindings, configmaps, deployments, services, and OpenShift routes
+- **Automatic Service Exposure**: On Kubernetes, the script automatically starts a port-forward to `localhost:8080` — no manual step required
+- **Correct MCP URL**: The generated MCP configuration always contains the correct service URL (route URL on OpenShift, `http://localhost:8080/` on Kubernetes)
 - **Validation**: Built-in checks for prerequisites and deployment status
 - **Rollback Support**: Easy cleanup and redeployment options
 
@@ -197,6 +199,6 @@ For issues or questions:
 
 ---
 
-**Version**: 1.0  
-**License**: As per project license  
-**Last Updated**: 2026-05-16
+**Version**: 1.1
+**License**: As per project license
+**Last Updated**: 2026-05-17
